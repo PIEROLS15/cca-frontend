@@ -1,6 +1,6 @@
 import { LoginLeftPanel } from "@/components/login/login-left-panel";
 import { LoginForm } from "@/components/login/login-form";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {

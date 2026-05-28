@@ -1,64 +1,101 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useCallback } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { StatCards } from "@/components/dashboard/StatCards";
+import { StatusBreakdownCard } from "@/components/dashboard/StatusBreakdownCard";
+import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
+import { MonthlyActivityCard } from "@/components/dashboard/MonthlyActivityCard";
 import { useSession } from "@/context/session-context";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { DashboardService } from "@/services/dashboard.service";
+import type { DashboardSummary, StatusBreakdownItem, MonthlyActivityItem, RecentActivityItem } from "@/types/dashboard";
+import type { PresetKey } from "@/lib/dashboard-utils";
+import { presetRange, toDateParam } from "@/lib/dashboard-utils";
+import type { DateRange } from "react-day-picker";
 
-export default function HomePage() {
-  const { user, isAuthenticated, loading, logout } = useSession();
+export default function DashboardPage() {
+  const { user, isAuthenticated, loading } = useSession();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [statusBreakdown, setStatusBreakdown] = useState<StatusBreakdownItem[]>([]);
+  const [monthlyData, setMonthlyData] = useState<MonthlyActivityItem[]>([]);
+  const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([]);
+  const [estadoLoading, setEstadoLoading] = useState(true);
+  const [actividadLoading, setActividadLoading] = useState(true);
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push("/login");
-    }
+    if (!loading && !isAuthenticated) router.push("/login");
   }, [loading, isAuthenticated, router]);
 
-  if (loading) {
+  const [estadoPreset, setEstadoPreset] = useState<PresetKey>("12m");
+  const [estadoRange, setEstadoRange] = useState<DateRange>(() => presetRange("12m"));
+  const [actividadPreset, setActividadPreset] = useState<PresetKey>("12m");
+  const [actividadRange, setActividadRange] = useState<DateRange>(() => presetRange("12m"));
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    DashboardService.getSummary().then(setSummary).catch(() => {});
+    DashboardService.getRecentActivity().then(setRecentActivity).catch(() => {});
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    setEstadoLoading(true);
+    DashboardService.getStatusBreakdown(toDateParam(estadoRange.from), toDateParam(estadoRange.to))
+      .then(setStatusBreakdown)
+      .catch(() => {})
+      .finally(() => setEstadoLoading(false));
+  }, [isAuthenticated, estadoRange]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    setActividadLoading(true);
+    DashboardService.getMonthlyActivity(toDateParam(actividadRange.from), toDateParam(actividadRange.to))
+      .then(setMonthlyData)
+      .catch(() => {})
+      .finally(() => setActividadLoading(false));
+  }, [isAuthenticated, actividadRange]);
+
+  if (!mounted || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse text-muted-foreground">
-          Cargando...
-        </div>
+        <div className="animate-pulse text-muted-foreground">Cargando...</div>
       </div>
     );
   }
 
-  if (!isAuthenticated || !user) {
-    return null;
-  }
+  if (!isAuthenticated || !user) return null;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-8">
-      <div className="w-full max-w-md space-y-6">
-        <div className="rounded-2xl border border-border bg-card p-8 shadow-xl text-center">
-          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-primary">
-            {user.fullName.charAt(0)}
-          </div>
-          <h1 className="text-xl font-semibold">
-            Bienvenido, {user.fullName}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {user.role.name} &middot; @{user.username}
-          </p>
+    <AppLayout>
+      <PageContainer title="Panel general" description="Resumen de actividad y métricas clave de la comunidad.">
+        <StatCards summary={summary} />
 
-          <div className="mt-6 space-y-2 text-left text-sm">
-            <div className="flex justify-between py-2 border-b border-border">
-              <span className="text-muted-foreground">Email</span>
-              <span>{user.email}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-border">
-              <span className="text-muted-foreground">DNI</span>
-              <span>{user.dni}</span>
-            </div>
-          </div>
-
-          <Button variant="outline" className="mt-6 w-full" onClick={logout}>
-            Cerrar sesión
-          </Button>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <StatusBreakdownCard
+            data={statusBreakdown}
+            loading={estadoLoading}
+            preset={estadoPreset}
+            range={estadoRange}
+            onFilterChange={(p, r) => { setEstadoPreset(p); setEstadoRange(r); }}
+          />
+          <RecentActivityCard data={recentActivity} />
         </div>
-      </div>
-    </div>
+
+        <MonthlyActivityCard
+          data={monthlyData}
+          loading={actividadLoading}
+          preset={actividadPreset}
+          range={actividadRange}
+          onFilterChange={(p, r) => { setActividadPreset(p); setActividadRange(r); }}
+        />
+      </PageContainer>
+    </AppLayout>
   );
 }
