@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { PageLoader } from "@/components/ui/PageLoader";
 import { StatCards } from "@/components/dashboard/StatCards";
 import { StatusBreakdownCard } from "@/components/dashboard/StatusBreakdownCard";
 import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
@@ -18,16 +19,13 @@ import type { DateRange } from "react-day-picker";
 export default function DashboardPage() {
   const { user, isAuthenticated, loading } = useSession();
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => { setMounted(true); }, []);
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [statusBreakdown, setStatusBreakdown] = useState<StatusBreakdownItem[]>([]);
   const [monthlyData, setMonthlyData] = useState<MonthlyActivityItem[]>([]);
   const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([]);
-  const [estadoLoading, setEstadoLoading] = useState(true);
-  const [actividadLoading, setActividadLoading] = useState(true);
+  const [estadoLoaded, setEstadoLoaded] = useState(false);
+  const [actividadLoaded, setActividadLoaded] = useState(false);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) router.push("/login");
@@ -46,29 +44,21 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    setEstadoLoading(true);
     DashboardService.getStatusBreakdown(toDateParam(estadoRange.from), toDateParam(estadoRange.to))
       .then(setStatusBreakdown)
       .catch(() => {})
-      .finally(() => setEstadoLoading(false));
+      .finally(() => setEstadoLoaded(true));
   }, [isAuthenticated, estadoRange]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    setActividadLoading(true);
     DashboardService.getMonthlyActivity(toDateParam(actividadRange.from), toDateParam(actividadRange.to))
       .then(setMonthlyData)
       .catch(() => {})
-      .finally(() => setActividadLoading(false));
+      .finally(() => setActividadLoaded(true));
   }, [isAuthenticated, actividadRange]);
 
-  if (!mounted || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse text-muted-foreground">Cargando...</div>
-      </div>
-    );
-  }
+  if (loading) return <PageLoader />;
 
   if (!isAuthenticated || !user) return null;
 
@@ -80,7 +70,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <StatusBreakdownCard
             data={statusBreakdown}
-            loading={estadoLoading}
+            loading={!estadoLoaded}
             preset={estadoPreset}
             range={estadoRange}
             onFilterChange={(p, r) => { setEstadoPreset(p); setEstadoRange(r); }}
@@ -90,7 +80,7 @@ export default function DashboardPage() {
 
         <MonthlyActivityCard
           data={monthlyData}
-          loading={actividadLoading}
+          loading={!actividadLoaded}
           preset={actividadPreset}
           range={actividadRange}
           onFilterChange={(p, r) => { setActividadPreset(p); setActividadRange(r); }}
