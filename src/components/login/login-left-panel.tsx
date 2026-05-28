@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Sparkles } from "lucide-react";
-import { featuresData } from "@/data/features";
+import { featuresData } from "@/lib/features";
 
 export function LoginLeftPanel() {
   return (
@@ -23,9 +23,10 @@ export function LoginLeftPanel() {
         <Image
           src="/images/logo.png"
           alt="Comunidad Campesina de Asia"
-          width={200}
-          height={80}
+          width={781}
+          height={319}
           className="h-20 w-auto drop-shadow-lg"
+          sizes="196px"
         />
       </div>
 
