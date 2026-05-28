@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AuthService } from "@/services/auth.service";
 import { useSession } from "@/context/session-context";
 
 export function useLogin() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setSession } = useSession();
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -27,7 +28,8 @@ export function useLogin() {
       setLoading(true);
       const response = await AuthService.login({ username, password });
       setSession(response.user);
-      router.push("/");
+      const redirectTo = searchParams.get("redirect") || "/";
+      router.push(redirectTo);
     } catch (error: unknown) {
       const message =
         error && typeof error === "object" && "message" in error

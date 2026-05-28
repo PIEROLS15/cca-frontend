@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -35,6 +36,33 @@ function getStoredUser(): User | null {
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(getStoredUser);
+  const [loading, setLoading] = useState(true);
+
+  const clearSession = useCallback(() => {
+    localStorage.removeItem("user");
+    setUser(null);
+  }, []);
+
+  useEffect(() => {
+    AuthService.me()
+      .then((res) => {
+        localStorage.setItem("user", JSON.stringify(res.user));
+        setUser(res.user);
+      })
+      .catch(() => {
+        clearSession();
+      })
+      .finally(() => setLoading(false));
+  }, [clearSession]);
+
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      clearSession();
+    };
+
+    window.addEventListener("session:expired", handleSessionExpired);
+    return () => window.removeEventListener("session:expired", handleSessionExpired);
+  }, [clearSession]);
 
   const setSession = useCallback((newUser: User) => {
     localStorage.setItem("user", JSON.stringify(newUser));
@@ -47,19 +75,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // siempre limpiamos aunque falle el backend
     }
-    localStorage.removeItem("user");
-    setUser(null);
-  }, []);
+    clearSession();
+  }, [clearSession]);
 
   const value = useMemo(
     () => ({
       user,
       isAuthenticated: Boolean(user),
-      loading: false,
+      loading,
       setSession,
       logout,
     }),
-    [user, setSession, logout]
+    [user, loading, setSession, logout]
   );
 
   return (

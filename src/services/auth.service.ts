@@ -1,5 +1,5 @@
 import { apiFetch } from "./api";
-import type { LoginPayload, LoginResponse } from "@/types/auth";
+import type { LoginPayload, LoginResponse, User } from "@/types/auth";
 
 export const AuthService = {
   login: (payload: LoginPayload) =>
@@ -11,4 +11,5 @@ export const AuthService = {
     apiFetch<{ message: string }>("/api/auth/logout", {
       method: "POST",
     }),
+  me: () => apiFetch<{ user: User }>("/api/auth/me"),
 };

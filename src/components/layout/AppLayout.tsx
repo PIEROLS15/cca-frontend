@@ -52,7 +52,7 @@ const labelMap: Record<string, string> = Object.fromEntries(
 );
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  const { user, logout } = useSession();
+  const { user, isAuthenticated, loading, logout } = useSession();
   const { theme, toggle, apply } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
@@ -63,8 +63,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }, [apply]);
 
   useEffect(() => {
-    if (!user) router.push("/login");
-  }, [user, router]);
+    if (!loading && !isAuthenticated) router.push("/login");
+  }, [loading, isAuthenticated, router]);
 
   useEffect(() => {
     setMobileOpen(false);
