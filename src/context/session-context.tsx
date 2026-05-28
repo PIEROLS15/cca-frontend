@@ -17,6 +17,7 @@ interface SessionContextType {
   loading: boolean;
   setSession: (user: User) => void;
   logout: () => Promise<void>;
+  updateUserData: (data: Partial<User>) => void;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -78,6 +79,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     clearSession();
   }, [clearSession]);
 
+  const updateUserData = useCallback((data: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, ...data };
+      localStorage.setItem("user", JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
@@ -85,8 +95,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       loading,
       setSession,
       logout,
+      updateUserData,
     }),
-    [user, loading, setSession, logout]
+    [user, loading, setSession, logout, updateUserData]
   );
 
   return (

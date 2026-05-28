@@ -70,7 +70,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     setMobileOpen(false);
   }, [pathname]);
 
-  if (!user) return null;
+  if (loading || !user) return null;
 
   const current = labelMap[pathname] ?? "Inicio";
   const initials = user.fullName
@@ -177,6 +177,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               height={319}
               className="h-11 w-auto shrink-0 drop-shadow"
               sizes="108px"
+              loading="eager"
             />
           </Link>
           {onClose && (
