@@ -4,6 +4,18 @@ if (!BASE_URL) {
   throw new Error("NEXT_PUBLIC_API_URL no está definida en .env");
 }
 
+class ApiError extends Error {
+  status: number;
+  data: unknown;
+
+  constructor(message: string, status: number, data?: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.data = data;
+  }
+}
+
 export async function apiFetch<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -18,11 +30,19 @@ export async function apiFetch<T>(
   });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({
+    const body = await res.json().catch(() => ({
       message: "Error inesperado del servidor",
     }));
+    const error = new ApiError(body.message, res.status, body);
+
+    if (res.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("session:expired", { detail: error }));
+    }
+
     throw error;
   }
 
   return res.json();
 }
+
+export { ApiError };

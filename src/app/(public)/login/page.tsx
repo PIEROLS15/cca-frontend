@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { LoginLeftPanel } from "@/components/login/login-left-panel";
 import { LoginForm } from "@/components/login/login-form";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -13,7 +14,9 @@ export default function LoginPage() {
       <ThemeToggle />
       <LoginLeftPanel />
       <div className="flex items-center justify-center p-6 lg:p-12">
-        <LoginForm />
+        <Suspense fallback={null}>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   );
