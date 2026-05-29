@@ -1,3 +1,4 @@
+import { type ReactNode } from "react";
 import { Search, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 interface SearchFiltersProps {
+  children?: ReactNode;
   search: string;
   onSearchChange: (value: string) => void;
   onClear: () => void;
@@ -12,6 +14,7 @@ interface SearchFiltersProps {
 }
 
 export function SearchFilters({
+  children,
   search,
   onSearchChange,
   onClear,
@@ -29,6 +32,8 @@ export function SearchFilters({
             className="pl-9"
           />
         </div>
+
+        {children}
 
         <Button
           type="button"
