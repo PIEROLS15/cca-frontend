@@ -1,3 +1,9 @@
+export interface PersonaData {
+  fullName: string;
+  documentNumber: string;
+  address: string;
+}
+
 export type ClientType = "Comunero" | "Tercero";
 
 export interface Client {
