@@ -1,6 +1,6 @@
 import { apiFetch } from "./api";
 import type { PaginatedApiResponse } from "@/types/api";
-import type { Client, ClientPayload, ClientType } from "@/types/client";
+import type { Client, ClientPayload, ClientType, PersonaData } from "@/types/client";
 
 const PAGE_SIZE = 100;
 
@@ -66,5 +66,13 @@ export const ClientsService = {
     return apiFetch<void>(`/api/clients/${id}`, {
       method: "DELETE",
     });
+  },
+
+  searchByDocument(document: string) {
+    return apiFetch<PersonaData>(`/api/clients/search/${encodeURIComponent(document)}`);
+  },
+
+  searchReniec(document: string) {
+    return apiFetch<PersonaData>(`/api/clients/reniec/${encodeURIComponent(document)}`);
   },
 };
