@@ -1,6 +1,6 @@
 import { apiFetch } from "./api";
 import type { PaginatedApiResponse } from "@/types/api";
-import type { Client, ClientPayload, ClientType, PersonaData } from "@/types/client";
+import type { Client, ClientLookupResult, ClientPayload, ClientType, PersonaData } from "@/types/client";
 
 const PAGE_SIZE = 100;
 
@@ -69,7 +69,12 @@ export const ClientsService = {
   },
 
   searchByDocument(document: string) {
-    return apiFetch<PersonaData>(`/api/clients/search/${encodeURIComponent(document)}`);
+    return apiFetch<Client>(`/api/clients/search/${encodeURIComponent(document)}`).then<ClientLookupResult>((client) => ({
+      id: client.id,
+      fullName: client.fullName,
+      documentNumber: client.documentNumber,
+      address: client.address ?? "",
+    }));
   },
 
   searchReniec(document: string) {

@@ -1,4 +1,5 @@
 export interface CertificateRequestPerson {
+  id?: number | null;
   searchType: string;
   fullName: string;
   documentNumber: string;

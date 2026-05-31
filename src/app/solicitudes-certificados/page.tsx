@@ -12,20 +12,10 @@ import { SearchFilters } from "@/components/ui/SearchFilters";
 import { Button } from "@/components/ui/button";
 import { useCertificateRequests } from "@/hooks/use-certificate-requests";
 import { CertificateRequestsService } from "@/services/certificate-requests.service";
+import { formatDateTime } from "@/lib/utils";
 import type { CertificateRequest } from "@/types/certificate-request";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString("es-PE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
 
 const CERTIFICATE_TYPE_LABELS: Record<string, string> = {
   certificadoposesion: "Certificado de Posesión",

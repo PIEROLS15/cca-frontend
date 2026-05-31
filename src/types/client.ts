@@ -4,6 +4,10 @@ export interface PersonaData {
   address: string;
 }
 
+export interface ClientLookupResult extends PersonaData {
+  id: number;
+}
+
 export type ClientType = "Comunero" | "Tercero";
 
 export interface Client {
