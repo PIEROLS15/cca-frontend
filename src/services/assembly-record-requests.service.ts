@@ -1,6 +1,6 @@
 import { apiFetch } from "./api";
 import type { PaginatedApiResponse } from "@/types/api";
-import type { Certificate, CertificatePayload } from "@/types/certificate";
+import type { AssemblyRecordRequest, AssemblyRecordRequestPayload, AssemblyRecordRequestUpdatePayload } from "@/types/assembly-record-request";
 
 const PAGE_SIZE = 100;
 
@@ -14,12 +14,12 @@ function buildQuery(page: number, limit: number) {
 }
 
 async function listPage(page: number) {
-  return apiFetch<PaginatedApiResponse<Certificate>>(
-    `/api/certificates${buildQuery(page, PAGE_SIZE)}`,
+  return apiFetch<PaginatedApiResponse<AssemblyRecordRequest>>(
+    `/api/assembly-record-requests${buildQuery(page, PAGE_SIZE)}`,
   );
 }
 
-export const CertificatesService = {
+export const AssemblyRecordRequestsService = {
   async listAll() {
     const firstPage = await listPage(1);
 
@@ -35,47 +35,36 @@ export const CertificatesService = {
   },
 
   getById(id: number) {
-    return apiFetch<Certificate>(`/api/certificates/${id}`);
+    return apiFetch<AssemblyRecordRequest>(`/api/assembly-record-requests/${id}`);
   },
 
-  lookupByNumber(number: string) {
-    return apiFetch<Certificate>(`/api/certificates/by-number/${number}`);
-  },
-
-  create(payload: CertificatePayload) {
-    return apiFetch<Certificate>("/api/certificates", {
+  create(payload: AssemblyRecordRequestPayload) {
+    return apiFetch<AssemblyRecordRequest>("/api/assembly-record-requests", {
       method: "POST",
       body: JSON.stringify(payload),
     });
   },
 
-  update(id: number, payload: CertificatePayload) {
-    return apiFetch<Certificate>(`/api/certificates/${id}`, {
+  update(id: number, payload: AssemblyRecordRequestUpdatePayload) {
+    return apiFetch<AssemblyRecordRequest>(`/api/assembly-record-requests/${id}`, {
       method: "PUT",
       body: JSON.stringify(payload),
     });
   },
 
   remove(id: number) {
-    return apiFetch<void>(`/api/certificates/${id}`, {
+    return apiFetch<void>(`/api/assembly-record-requests/${id}`, {
       method: "DELETE",
     });
   },
 
-  updateStatus(id: number, status: string) {
-    return apiFetch<Certificate>(`/api/certificates/${id}`, {
-      method: "PUT",
-      body: JSON.stringify({ status }),
-    });
-  },
-
-  getPdfUrl(_id: number, certificateNumber: string) {
+  getPdfUrl(code: string) {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
     if (!baseUrl) {
       throw new Error("NEXT_PUBLIC_API_URL no está definida en .env");
     }
 
-    return `${baseUrl}/api/certificates/download/certificado-${certificateNumber}.pdf`;
+    return `${baseUrl}/api/assembly-record-requests/download/solicitud-acta-${code}.pdf`;
   },
 };
