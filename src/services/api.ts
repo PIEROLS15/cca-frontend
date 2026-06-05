@@ -1,9 +1,3 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
-if (!BASE_URL) {
-  throw new Error("NEXT_PUBLIC_API_URL no está definida en .env");
-}
-
 class ApiError extends Error {
   status: number;
   data: unknown;
@@ -16,10 +10,21 @@ class ApiError extends Error {
   }
 }
 
+function getBaseUrl() {
+  const url = process.env.NEXT_PUBLIC_API_URL;
+
+  if (!url) {
+    throw new Error("NEXT_PUBLIC_API_URL no está definida en .env");
+  }
+
+  return url;
+}
+
 export async function apiFetch<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const BASE_URL = getBaseUrl();
   const res = await fetch(`${BASE_URL}${endpoint}`, {
     credentials: "include",
     ...options,
