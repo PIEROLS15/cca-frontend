@@ -1,4 +1,4 @@
-import { FileText, Users, Building2, Map } from "lucide-react";
+import { FileText, Users, Building2, Map, UserSquare2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import type { DashboardSummary } from "@/types/dashboard";
 
@@ -7,15 +7,16 @@ interface StatCardsProps {
 }
 
 const cards = [
-  { label: "Certificados Activos", key: "certificates" as const, icon: FileText, accent: "from-primary/20 to-primary/0 text-primary" },
-  { label: "Clientes", key: "clients" as const, icon: Users, accent: "from-info/20 to-info/0 text-info" },
+  { label: "Certificados", key: "certificates" as const, icon: FileText, accent: "from-primary/20 to-primary/0 text-primary" },
+  { label: "Clientes", key: "terceros" as const, icon: Users, accent: "from-info/20 to-info/0 text-info" },
+  { label: "Comuneros", key: "comuneros" as const, icon: UserSquare2, accent: "from-violet-500/20 to-violet-500/0 text-violet-500" },
   { label: "Sectores", key: "sectors" as const, icon: Building2, accent: "from-success/20 to-success/0 text-success" },
   { label: "Tipos de Terreno", key: "terrainTypes" as const, icon: Map, accent: "from-warning/20 to-warning/0 text-warning" },
 ];
 
 export function StatCards({ summary }: StatCardsProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
       {cards.map((c) => {
         const Icon = c.icon;
         const value = summary?.[c.key] ?? 0;

@@ -1,6 +1,8 @@
 export interface DashboardSummary {
   certificates: number;
   clients: number;
+  comuneros: number;
+  terceros: number;
   terrainTypes: number;
   sectors: number;
 }
