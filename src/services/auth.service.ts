@@ -12,7 +12,7 @@ export const AuthService = {
       method: "POST",
     }),
   me: () => apiFetch<{ user: User }>("/api/auth/me"),
-  updateProfile: (data: { fullName: string; username: string; email: string }) =>
+  updateProfile: (data: { fullName: string; username: string; email?: string; dni?: string }) =>
     apiFetch<{ user: User }>("/api/auth/profile", {
       method: "PATCH",
       body: JSON.stringify(data),

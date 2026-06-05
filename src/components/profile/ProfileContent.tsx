@@ -16,6 +16,8 @@ export function ProfileContent() {
     isAuthenticated,
     fullName, setFullName,
     username, setUsername,
+    email, setEmail,
+    dni, setDni,
     savingProfile,
     currentPassword, setCurrentPassword,
     verified, setVerified,
@@ -47,11 +49,11 @@ export function ProfileContent() {
           <form onSubmit={handleSaveProfile} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="email">Correo electrónico</Label>
-              <Input id="email" value={user.email} readOnly disabled />
+              <Input id="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="dni">DNI</Label>
-              <Input id="dni" value={user.dni} readOnly disabled />
+              <Input id="dni" value={dni} onChange={(e) => setDni(e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="fullName">Nombre completo</Label>
