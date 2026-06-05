@@ -12,6 +12,8 @@ export function useProfile() {
 
   const [dirtyFullName, setDirtyFullName] = useState<string | null>(null);
   const [dirtyUsername, setDirtyUsername] = useState<string | null>(null);
+  const [dirtyEmail, setDirtyEmail] = useState<string | null>(null);
+  const [dirtyDni, setDirtyDni] = useState<string | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -23,9 +25,13 @@ export function useProfile() {
 
   const fullName = dirtyFullName ?? user?.fullName ?? "";
   const username = dirtyUsername ?? user?.username ?? "";
+  const email = dirtyEmail ?? user?.email ?? "";
+  const dni = dirtyDni ?? user?.dni ?? "";
 
   const setFullName = (value: string) => setDirtyFullName(value);
   const setUsername = (value: string) => setDirtyUsername(value);
+  const setEmail = (value: string) => setDirtyEmail(value);
+  const setDni = (value: string) => setDirtyDni(value);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) router.push("/login");
@@ -59,18 +65,21 @@ export function useProfile() {
       const res = await AuthService.updateProfile({
         fullName: fullName.trim(),
         username: username.trim(),
-        email: user!.email,
+        ...(email.trim() ? { email: email.trim() } : {}),
+        ...(dni.trim() ? { dni: dni.trim() } : {}),
       });
       updateUserData(res.user);
       setDirtyFullName(null);
       setDirtyUsername(null);
+      setDirtyEmail(null);
+      setDirtyDni(null);
       toast.success("Perfil actualizado");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "No se pudo actualizar el perfil";
       toast.error(message);
     }
     setSavingProfile(false);
-  }, [fullName, username, user, updateUserData]);
+  }, [fullName, username, email, dni, updateUserData]);
 
   const handleChangePassword = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,6 +122,10 @@ export function useProfile() {
     setFullName,
     username,
     setUsername,
+    email,
+    setEmail,
+    dni,
+    setDni,
     savingProfile,
     currentPassword,
     setCurrentPassword,
