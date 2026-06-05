@@ -2,63 +2,37 @@ import { apiFetch } from "./api";
 import type { PaginatedApiResponse } from "@/types/api";
 import type { Client, ClientLookupResult, ClientPayload, ClientType, PersonaData } from "@/types/client";
 
-const PAGE_SIZE = 100;
-
-function buildQuery(page: number, limit: number, clientType?: ClientType) {
-  const params = new URLSearchParams({
-    page: String(page),
-    limit: String(limit),
-  });
-
-  if (clientType) {
-    params.set("clientType", clientType);
-  }
-
-  return `?${params.toString()}`;
-}
-
-async function listPage(page: number, clientType?: ClientType) {
-  return apiFetch<PaginatedApiResponse<Client>>(
-    `/api/clients${buildQuery(page, PAGE_SIZE, clientType)}`,
-  );
-}
-
-function normalizePayload(payload: ClientPayload) {
-  return {
-    fullName: payload.fullName.trim(),
-    documentNumber: payload.documentNumber.trim(),
-    address: payload.address.trim(),
-    phone: payload.phone.trim(),
-    clientType: payload.clientType,
-  };
-}
-
 export const ClientsService = {
-  async listAll(clientType?: ClientType) {
-    const firstPage = await listPage(1, clientType);
-
-    if (firstPage.totalPages <= 1) {
-      return firstPage.data;
-    }
-
-    const restPages = await Promise.all(
-      Array.from({ length: firstPage.totalPages - 1 }, (_, index) => listPage(index + 2, clientType)),
-    );
-
-    return firstPage.data.concat(restPages.flatMap((page) => page.data));
+  async list({ page = 1, limit = 5, search, clientType }: { page?: number; limit?: number; search?: string; clientType?: ClientType } = {}) {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (search) params.set("search", search);
+    if (clientType) params.set("clientType", clientType);
+    return apiFetch<PaginatedApiResponse<Client>>(`/api/clients?${params.toString()}`);
   },
 
   create(payload: ClientPayload) {
     return apiFetch<Client>("/api/clients", {
       method: "POST",
-      body: JSON.stringify(normalizePayload(payload)),
+      body: JSON.stringify({
+        fullName: payload.fullName.trim(),
+        documentNumber: payload.documentNumber.trim(),
+        address: payload.address.trim(),
+        phone: payload.phone.trim(),
+        clientType: payload.clientType,
+      }),
     });
   },
 
   update(id: number, payload: ClientPayload) {
     return apiFetch<Client>(`/api/clients/${id}`, {
       method: "PUT",
-      body: JSON.stringify(normalizePayload(payload)),
+      body: JSON.stringify({
+        fullName: payload.fullName.trim(),
+        documentNumber: payload.documentNumber.trim(),
+        address: payload.address.trim(),
+        phone: payload.phone.trim(),
+        clientType: payload.clientType,
+      }),
     });
   },
 

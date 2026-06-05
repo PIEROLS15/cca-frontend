@@ -2,36 +2,11 @@ import { apiFetch } from "./api";
 import type { PaginatedApiResponse } from "@/types/api";
 import type { Sector } from "@/types/sector";
 
-const PAGE_SIZE = 100;
-
-function buildQuery(page: number, limit: number) {
-  const params = new URLSearchParams({
-    page: String(page),
-    limit: String(limit),
-  });
-
-  return `?${params.toString()}`;
-}
-
-async function listPage(page: number) {
-  return apiFetch<PaginatedApiResponse<Sector>>(
-    `/api/sectors${buildQuery(page, PAGE_SIZE)}`,
-  );
-}
-
 export const SectorsService = {
-  async listAll() {
-    const firstPage = await listPage(1);
-
-    if (firstPage.totalPages <= 1) {
-      return firstPage.data;
-    }
-
-    const restPages = await Promise.all(
-      Array.from({ length: firstPage.totalPages - 1 }, (_, index) => listPage(index + 2)),
-    );
-
-    return firstPage.data.concat(restPages.flatMap((page) => page.data));
+  async list({ page = 1, limit = 5, search }: { page?: number; limit?: number; search?: string } = {}) {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (search) params.set("search", search);
+    return apiFetch<PaginatedApiResponse<Sector>>(`/api/sectors?${params.toString()}`);
   },
 
   create(name: string) {

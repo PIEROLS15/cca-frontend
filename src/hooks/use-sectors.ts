@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 
 import { SectorsService } from "@/services/sectors.service";
@@ -10,20 +10,40 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
-export function useSectors() {
+export function useSectors(initial?: { page?: number; limit?: number; search?: string }) {
   const [sectors, setSectors] = useState<Sector[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [page, setPage] = useState(initial?.page ?? 1);
+  const [limit, setLimit] = useState(initial?.limit ?? 5);
+  const [search, setSearch] = useState(initial?.search ?? "");
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
+  const loadSectors = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await SectorsService.list({ page, limit, search });
+      setSectors(result.data);
+      setTotal(result.total);
+      setTotalPages(result.totalPages);
+    } catch (error) {
+      toast.error(getErrorMessage(error, "No se pudieron cargar los sectores"));
+    } finally {
+      setLoading(false);
+    }
+  }, [page, limit, search]);
 
   useEffect(() => {
     let cancelled = false;
-
-    async function loadSectors() {
+    void (async () => {
+      setLoading(true);
       try {
-        const data = await SectorsService.listAll();
-
+        const result = await SectorsService.list({ page, limit, search });
         if (!cancelled) {
-          setSectors(data);
+          setSectors(result.data);
+          setTotal(result.total);
+          setTotalPages(result.totalPages);
         }
       } catch (error) {
         if (!cancelled) {
@@ -34,26 +54,16 @@ export function useSectors() {
           setLoading(false);
         }
       }
-    }
-
-    void loadSectors();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function reloadSectors() {
-    const data = await SectorsService.listAll();
-    setSectors(data);
-  }
+    })();
+    return () => { cancelled = true; };
+  }, [page, limit, search]);
 
   async function createSector(name: string) {
     setSubmitting(true);
 
     try {
       await SectorsService.create(name);
-      await reloadSectors();
+      await loadSectors();
       toast.success("Sector creado");
       return true;
     } catch (error) {
@@ -69,7 +79,7 @@ export function useSectors() {
 
     try {
       await SectorsService.update(id, name);
-      await reloadSectors();
+      await loadSectors();
       toast.success("Sector actualizado");
       return true;
     } catch (error) {
@@ -85,7 +95,7 @@ export function useSectors() {
 
     try {
       await SectorsService.remove(sector.id);
-      await reloadSectors();
+      await loadSectors();
       toast.success(`Sector ${sector.name} eliminado`);
       return true;
     } catch (error) {
@@ -100,6 +110,14 @@ export function useSectors() {
     sectors,
     loading,
     submitting,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    search,
+    setSearch,
+    total,
+    totalPages,
     createSector,
     updateSector,
     deleteSector,

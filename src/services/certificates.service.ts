@@ -2,36 +2,15 @@ import { apiFetch } from "./api";
 import type { PaginatedApiResponse } from "@/types/api";
 import type { Certificate, CertificatePayload } from "@/types/certificate";
 
-const PAGE_SIZE = 100;
-
-function buildQuery(page: number, limit: number) {
-  const params = new URLSearchParams({
-    page: String(page),
-    limit: String(limit),
-  });
-
-  return `?${params.toString()}`;
-}
-
-async function listPage(page: number) {
-  return apiFetch<PaginatedApiResponse<Certificate>>(
-    `/api/certificates${buildQuery(page, PAGE_SIZE)}`,
-  );
-}
-
 export const CertificatesService = {
-  async listAll() {
-    const firstPage = await listPage(1);
-
-    if (firstPage.totalPages <= 1) {
-      return firstPage.data;
-    }
-
-    const restPages = await Promise.all(
-      Array.from({ length: firstPage.totalPages - 1 }, (_, index) => listPage(index + 2)),
-    );
-
-    return firstPage.data.concat(restPages.flatMap((page) => page.data));
+  async list({ page = 1, limit = 5, search, name, documentNumber, mz, lot }: { page?: number; limit?: number; search?: string; name?: string; documentNumber?: string; mz?: string; lot?: string } = {}) {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (search) params.set("search", search);
+    if (name) params.set("name", name);
+    if (documentNumber) params.set("documentNumber", documentNumber);
+    if (mz) params.set("mz", mz);
+    if (lot) params.set("lot", lot);
+    return apiFetch<PaginatedApiResponse<Certificate>>(`/api/certificates?${params.toString()}`);
   },
 
   getById(id: number) {

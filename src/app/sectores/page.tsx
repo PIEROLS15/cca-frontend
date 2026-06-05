@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { Building2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -12,30 +12,24 @@ import { NameFormDialog } from "@/components/ui/NameFormDialog";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { SearchFilters } from "@/components/ui/SearchFilters";
 import { Button } from "@/components/ui/button";
+import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useSectors } from "@/hooks/use-sectors";
 import type { Sector } from "@/types/sector";
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-
 type DialogMode = "create" | "edit" | "delete" | null;
 
-export default function SectoresPage() {
-  const { sectors, loading, submitting, createSector, updateSector, deleteSector } = useSectors();
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+function SectoresContent() {
+  const { readParam, readNumParam, syncToUrl } = usePaginationSync();
+  const { sectors, loading, submitting, createSector, updateSector, deleteSector, page, setPage, limit, setLimit, search, setSearch, total, totalPages } = useSectors({
+    page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
+  });
+
+  useEffect(() => {
+    syncToUrl({ page: page > 1 ? page : undefined, limit: limit !== 5 ? limit : undefined, search });
+  }, [page, limit, search, syncToUrl]);
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
   const [selectedSector, setSelectedSector] = useState<Sector | null>(null);
   const [name, setName] = useState("");
-
-  const normalizedSearch = search.trim().toLowerCase();
-  const filteredSectors = sectors.filter((sector) =>
-    sector.name.toLowerCase().includes(normalizedSearch),
-  );
-  const totalPages = Math.max(1, Math.ceil(filteredSectors.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const pageStart = (safePage - 1) * pageSize;
-  const currentSectors = filteredSectors.slice(pageStart, pageStart + pageSize);
 
   const columns: DataTableColumn<Sector>[] = [
     {
@@ -161,22 +155,21 @@ export default function SectoresPage() {
 
         <DataTable
           columns={columns}
-          data={currentSectors}
+          data={sectors}
           rowKey={(sector) => sector.id}
           loading={loading}
           loadingText="Cargando sectores..."
           emptyText="Sin resultados"
         />
 
-        {!loading && (
+        {!loading && total > 0 && (
           <PaginationControls
-            page={safePage}
-            pageSize={pageSize}
-            totalItems={filteredSectors.length}
-            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            page={page}
+            limit={limit}
+            totalItems={total}
             onPageChange={setPage}
-            onPageSizeChange={(value) => {
-              setPageSize(value);
+            onLimitChange={(value) => {
+              setLimit(value);
               setPage(1);
             }}
           />
@@ -205,5 +198,13 @@ export default function SectoresPage() {
         />
       </PageContainer>
     </AppLayout>
+  );
+}
+
+export default function SectoresPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Cargando...</div>}>
+      <SectoresContent />
+    </Suspense>
   );
 }

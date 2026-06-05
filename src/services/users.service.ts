@@ -2,36 +2,13 @@ import { apiFetch } from "./api";
 import type { PaginatedApiResponse } from "@/types/api";
 import type { User, UserPayload, UserUpdatePayload } from "@/types/user";
 
-const PAGE_SIZE = 100;
-
-function buildQuery(page: number, limit: number) {
-  const params = new URLSearchParams({
-    page: String(page),
-    limit: String(limit),
-  });
-
-  return `?${params.toString()}`;
-}
-
-async function listPage(page: number) {
-  return apiFetch<PaginatedApiResponse<User>>(
-    `/api/users${buildQuery(page, PAGE_SIZE)}`,
-  );
-}
-
 export const UsersService = {
-  async listAll() {
-    const firstPage = await listPage(1);
-
-    if (firstPage.totalPages <= 1) {
-      return firstPage.data;
-    }
-
-    const restPages = await Promise.all(
-      Array.from({ length: firstPage.totalPages - 1 }, (_, index) => listPage(index + 2)),
-    );
-
-    return firstPage.data.concat(restPages.flatMap((page) => page.data));
+  async list({ page = 1, limit = 5, search, roleId, isActive }: { page?: number; limit?: number; search?: string; roleId?: number; isActive?: boolean } = {}) {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (search) params.set("search", search);
+    if (roleId !== undefined) params.set("roleId", String(roleId));
+    if (isActive !== undefined) params.set("isActive", String(isActive));
+    return apiFetch<PaginatedApiResponse<User>>(`/api/users?${params.toString()}`);
   },
 
   getById(id: number) {
