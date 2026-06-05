@@ -11,24 +11,50 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
-export function useUsers() {
+export function useUsers(initial?: { page?: number; limit?: number; search?: string; roleId?: number; isActive?: boolean }) {
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [page, setPage] = useState(initial?.page ?? 1);
+  const [limit, setLimit] = useState(initial?.limit ?? 5);
+  const [search, setSearch] = useState(initial?.search ?? "");
+  const [roleId, setRoleId] = useState<number | undefined>(initial?.roleId);
+  const [isActive, setIsActive] = useState<boolean | undefined>(initial?.isActive);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [usersResult, rolesData] = await Promise.all([
+        UsersService.list({ page, limit, search, roleId, isActive }),
+        RolesService.listAll(),
+      ]);
+      setUsers(usersResult.data);
+      setTotal(usersResult.total);
+      setTotalPages(usersResult.totalPages);
+      setRoles(rolesData);
+    } catch (error) {
+      toast.error(getErrorMessage(error, "No se pudieron cargar los datos"));
+    } finally {
+      setLoading(false);
+    }
+  }, [page, limit, search, roleId, isActive]);
 
   useEffect(() => {
     let cancelled = false;
-
-    async function loadAll() {
+    void (async () => {
+      setLoading(true);
       try {
-        const [usersData, rolesData] = await Promise.all([
-          UsersService.listAll(),
+        const [usersResult, rolesData] = await Promise.all([
+          UsersService.list({ page, limit, search, roleId, isActive }),
           RolesService.listAll(),
         ]);
-
         if (!cancelled) {
-          setUsers(usersData);
+          setUsers(usersResult.data);
+          setTotal(usersResult.total);
+          setTotalPages(usersResult.totalPages);
           setRoles(rolesData);
         }
       } catch (error) {
@@ -40,26 +66,16 @@ export function useUsers() {
           setLoading(false);
         }
       }
-    }
-
-    void loadAll();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const reloadUsers = useCallback(async () => {
-    const data = await UsersService.listAll();
-    setUsers(data);
-  }, []);
+    })();
+    return () => { cancelled = true; };
+  }, [page, limit, search, roleId, isActive]);
 
   async function deleteUser(user: User) {
     setSubmitting(true);
 
     try {
       await UsersService.remove(user.id);
-      await reloadUsers();
+      await loadUsers();
       toast.success(`Usuario ${user.fullName} eliminado`);
       return true;
     } catch (error) {
@@ -75,7 +91,7 @@ export function useUsers() {
 
     try {
       await UsersService.toggleStatus(user.id, !user.isActive);
-      await reloadUsers();
+      await loadUsers();
       toast.success(`Usuario ${user.isActive ? "desactivado" : "activado"}`);
       return true;
     } catch (error) {
@@ -91,7 +107,7 @@ export function useUsers() {
 
     try {
       await UsersService.create(payload);
-      await reloadUsers();
+      await loadUsers();
       toast.success("Usuario creado correctamente");
       return true;
     } catch (error) {
@@ -107,7 +123,7 @@ export function useUsers() {
 
     try {
       await UsersService.update(id, payload);
-      await reloadUsers();
+      await loadUsers();
       toast.success("Usuario actualizado correctamente");
       return true;
     } catch (error) {
@@ -123,10 +139,21 @@ export function useUsers() {
     roles,
     loading,
     submitting,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    search,
+    setSearch,
+    roleId,
+    setRoleId,
+    isActive,
+    setIsActive,
+    total,
+    totalPages,
     toggleUserStatus,
     deleteUser,
     createUser,
     updateUser,
-    reloadUsers,
   };
 }

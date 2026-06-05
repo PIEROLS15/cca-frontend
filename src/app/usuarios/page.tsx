@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { Pencil, Plus, Power, PowerOff } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { PaginationControls } from "@/components/ui/PaginationControls";
 import { SearchFilters } from "@/components/ui/SearchFilters";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useUsers } from "@/hooks/use-users";
 import { UserFormDialog } from "@/components/usuarios/UserFormDialog";
 import { StatusToggleDialog } from "@/components/usuarios/StatusToggleDialog";
@@ -15,36 +17,23 @@ import { UserRoleBadge } from "@/components/usuarios/UserRoleBadge";
 import { UserActiveBadge } from "@/components/usuarios/UserActiveBadge";
 import type { User } from "@/types/user";
 
-export default function UsuariosPage() {
-  const { users, roles, loading, submitting, toggleUserStatus, createUser, updateUser } = useUsers();
-  const [search, setSearch] = useState("");
-  const [rolFilter, setRolFilter] = useState("");
-  const [estadoFilter, setEstadoFilter] = useState("");
+function UsuariosContent() {
+  const { readParam, readNumParam, readBoolParam, syncToUrl } = usePaginationSync();
+  const { users, roles, loading, submitting, toggleUserStatus, createUser, updateUser, page, setPage, limit, setLimit, search, setSearch, roleId, setRoleId, isActive, setIsActive, total, totalPages } = useUsers({
+    page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
+    roleId: readNumParam("roleId", 0) || undefined, isActive: readBoolParam("isActive"),
+  });
+
+  useEffect(() => {
+    syncToUrl({ page: page > 1 ? page : undefined, limit: limit !== 5 ? limit : undefined, search, roleId, isActive });
+  }, [page, limit, search, roleId, isActive, syncToUrl]);
   const [formDlg, setFormDlg] = useState<{ mode: "create" | "edit"; user: User | null } | null>(null);
   const [toggleDlg, setToggleDlg] = useState<User | null>(null);
 
   const roleOptions = useMemo(
-    () => roles.map((r) => ({ label: r.name, value: r.name })),
+    () => roles.map((r) => ({ label: r.name, value: r.id })),
     [roles],
   );
-
-  const filtered = useMemo(() => {
-    return users.filter((u) => {
-      if (search && !`${u.fullName} ${u.username} ${u.email ?? ""}`.toLowerCase().includes(search.toLowerCase())) {
-        return false;
-      }
-
-      if (rolFilter && u.role.name !== rolFilter) {
-        return false;
-      }
-
-      if (estadoFilter && (estadoFilter === "activo") !== u.isActive) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [users, search, rolFilter, estadoFilter]);
 
   const columns: DataTableColumn<User>[] = [
     {
@@ -161,13 +150,13 @@ export default function UsuariosPage() {
       >
         <SearchFilters
           search={search}
-          onSearchChange={(value) => setSearch(value)}
-          onClear={() => { setSearch(""); setRolFilter(""); setEstadoFilter(""); }}
+          onSearchChange={(value) => { setSearch(value); setPage(1); }}
+          onClear={() => { setSearch(""); setRoleId(undefined); setIsActive(undefined); setPage(1); }}
           placeholder="Buscar por nombre, usuario o correo..."
         >
           <Select
-            value={rolFilter || "all"}
-            onValueChange={(v) => setRolFilter(v === "all" ? "" : v)}
+            value={roleId !== undefined ? String(roleId) : "all"}
+            onValueChange={(v) => { setRoleId(v === "all" ? undefined : Number(v)); setPage(1); }}
           >
             <SelectTrigger className="lg:w-44">
               <SelectValue placeholder="Rol" />
@@ -175,34 +164,47 @@ export default function UsuariosPage() {
             <SelectContent>
               <SelectItem value="all">Todos los roles</SelectItem>
               {roleOptions.map((o) => (
-                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
 
           <Select
-            value={estadoFilter || "all"}
-            onValueChange={(v) => setEstadoFilter(v === "all" ? "" : v)}
+            value={isActive !== undefined ? String(isActive) : "all"}
+            onValueChange={(v) => { setIsActive(v === "all" ? undefined : v === "true"); setPage(1); }}
           >
             <SelectTrigger className="lg:w-40">
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="activo">Activos</SelectItem>
-              <SelectItem value="inactivo">Inactivos</SelectItem>
+              <SelectItem value="true">Activos</SelectItem>
+              <SelectItem value="false">Inactivos</SelectItem>
             </SelectContent>
           </Select>
         </SearchFilters>
 
         <DataTable
           columns={columns}
-          data={filtered}
+          data={users}
           rowKey={(u) => u.id}
           loading={loading}
           loadingText="Cargando usuarios..."
           emptyText="Sin resultados"
         />
+
+        {!loading && total > 0 && (
+          <PaginationControls
+            page={page}
+            limit={limit}
+            totalItems={total}
+            onPageChange={setPage}
+            onLimitChange={(value) => {
+              setLimit(value);
+              setPage(1);
+            }}
+          />
+        )}
 
         <UserFormDialog
           open={formDlg !== null}
@@ -223,5 +225,13 @@ export default function UsuariosPage() {
         />
       </PageContainer>
     </AppLayout>
+  );
+}
+
+export default function UsuariosPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Cargando...</div>}>
+      <UsuariosContent />
+    </Suspense>
   );
 }

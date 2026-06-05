@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { Map, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -12,14 +12,14 @@ import { NameFormDialog } from "@/components/ui/NameFormDialog";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { SearchFilters } from "@/components/ui/SearchFilters";
 import { Button } from "@/components/ui/button";
+import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useTerrainTypes } from "@/hooks/use-terrain-types";
 import type { TerrainType } from "@/types/terrain-type";
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-
 type DialogMode = "create" | "edit" | "delete" | null;
 
-export default function TiposTerrenoPage() {
+function TiposTerrenoContent() {
+  const { readParam, readNumParam, syncToUrl } = usePaginationSync();
   const {
     terrainTypes,
     loading,
@@ -27,22 +27,24 @@ export default function TiposTerrenoPage() {
     createTerrainType,
     updateTerrainType,
     deleteTerrainType,
-  } = useTerrainTypes();
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+    page,
+    setPage,
+    limit,
+    setLimit,
+    search,
+    setSearch,
+    total,
+    totalPages,
+  } = useTerrainTypes({
+    page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
+  });
+
+  useEffect(() => {
+    syncToUrl({ page: page > 1 ? page : undefined, limit: limit !== 5 ? limit : undefined, search });
+  }, [page, limit, search, syncToUrl]);
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
   const [selectedTerrainType, setSelectedTerrainType] = useState<TerrainType | null>(null);
   const [name, setName] = useState("");
-
-  const normalizedSearch = search.trim().toLowerCase();
-  const filteredTerrainTypes = terrainTypes.filter((terrainType) =>
-    terrainType.name.toLowerCase().includes(normalizedSearch),
-  );
-  const totalPages = Math.max(1, Math.ceil(filteredTerrainTypes.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const pageStart = (safePage - 1) * pageSize;
-  const currentTerrainTypes = filteredTerrainTypes.slice(pageStart, pageStart + pageSize);
 
   const columns: DataTableColumn<TerrainType>[] = [
     {
@@ -168,22 +170,21 @@ export default function TiposTerrenoPage() {
 
         <DataTable
           columns={columns}
-          data={currentTerrainTypes}
+          data={terrainTypes}
           rowKey={(terrainType) => terrainType.id}
           loading={loading}
           loadingText="Cargando tipos de terreno..."
           emptyText="Sin resultados"
         />
 
-        {!loading && (
+        {!loading && total > 0 && (
           <PaginationControls
-            page={safePage}
-            pageSize={pageSize}
-            totalItems={filteredTerrainTypes.length}
-            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            page={page}
+            limit={limit}
+            totalItems={total}
             onPageChange={setPage}
-            onPageSizeChange={(value) => {
-              setPageSize(value);
+            onLimitChange={(value) => {
+              setLimit(value);
               setPage(1);
             }}
           />
@@ -212,5 +213,13 @@ export default function TiposTerrenoPage() {
         />
       </PageContainer>
     </AppLayout>
+  );
+}
+
+export default function TiposTerrenoPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Cargando...</div>}>
+      <TiposTerrenoContent />
+    </Suspense>
   );
 }

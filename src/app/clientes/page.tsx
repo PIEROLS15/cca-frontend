@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { Pencil, Plus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,10 +13,9 @@ import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { DeleteConfirmDialog } from "@/components/ui/DeleteConfirmDialog";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { Button } from "@/components/ui/button";
+import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useClients } from "@/hooks/use-clients";
 import type { Client, ClientPayload, ClientType } from "@/types/client";
-
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 const EMPTY_FORM: ClientPayload = {
   fullName: "",
@@ -28,39 +27,20 @@ const EMPTY_FORM: ClientPayload = {
 
 type DialogMode = "create" | "edit" | "delete" | null;
 
-export default function ClientesPage() {
-  const { clients, loading, submitting, createClient, updateClient, deleteClient } = useClients();
-  const [search, setSearch] = useState("");
-  const [documentNumber, setDocumentNumber] = useState("");
-  const [clientType, setClientType] = useState<ClientType | "">("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+function ClientesContent() {
+  const { readParam, readNumParam, syncToUrl } = usePaginationSync();
+  const { clients, loading, submitting, createClient, updateClient, deleteClient, page, setPage, limit, setLimit, search, setSearch, total, totalPages } = useClients({
+    initial: { page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "" },
+  });
+  const [documentNumber, setDocumentNumber] = useState(readParam("documentNumber") ?? "");
+  const [clientType, setClientType] = useState<ClientType | "">((readParam("clientType") as ClientType | "") ?? "");
+
+  useEffect(() => {
+    syncToUrl({ page: page > 1 ? page : undefined, limit: limit !== 5 ? limit : undefined, search, documentNumber, clientType });
+  }, [page, limit, search, documentNumber, clientType, syncToUrl]);
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [formValues, setFormValues] = useState<ClientPayload>(EMPTY_FORM);
-
-  const normalizedSearch = search.trim().toLowerCase();
-  const normalizedDocument = documentNumber.trim().toLowerCase();
-
-  const filteredClients = clients.filter((client) => {
-    if (normalizedSearch && !client.fullName.toLowerCase().includes(normalizedSearch)) {
-      return false;
-    }
-
-    if (normalizedDocument && !client.documentNumber.toLowerCase().includes(normalizedDocument)) {
-      return false;
-    }
-
-    if (clientType && client.clientType !== clientType) {
-      return false;
-    }
-
-    return true;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filteredClients.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const currentClients = filteredClients.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const columns: DataTableColumn<Client>[] = [
     {
@@ -230,22 +210,21 @@ export default function ClientesPage() {
 
         <DataTable
           columns={columns}
-          data={currentClients}
+          data={clients}
           rowKey={(client) => client.id}
           loading={loading}
           loadingText="Cargando clientes..."
           emptyText="Sin resultados"
         />
 
-        {!loading && (
+        {!loading && total > 0 && (
           <PaginationControls
-            page={safePage}
-            pageSize={pageSize}
-            totalItems={filteredClients.length}
-            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            page={page}
+            limit={limit}
+            totalItems={total}
             onPageChange={setPage}
-            onPageSizeChange={(value) => {
-              setPageSize(value);
+            onLimitChange={(value) => {
+              setLimit(value);
               setPage(1);
             }}
           />
@@ -272,5 +251,13 @@ export default function ClientesPage() {
         />
       </PageContainer>
     </AppLayout>
+  );
+}
+
+export default function ClientesPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Cargando...</div>}>
+      <ClientesContent />
+    </Suspense>
   );
 }

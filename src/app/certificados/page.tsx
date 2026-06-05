@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { Eye, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -13,47 +13,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CertificateStatusBadge } from "@/components/certificados/CertificateStatusBadge";
 import { StatusChangeDialog } from "@/components/certificados/StatusChangeDialog";
+import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useCertificates } from "@/hooks/use-certificates";
 import { CertificatesService } from "@/services/certificates.service";
 import { formatDateTime } from "@/lib/utils";
 import type { Certificate, CertificateStatus } from "@/types/certificate";
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+function CertificatesContent() {
+  const { readParam, readNumParam, syncToUrl } = usePaginationSync();
+  const {
+    certificates, loading, submitting, deleteCertificate, updateCertificateStatus,
+    page, setPage, limit, setLimit,
+    search, setSearch,
+    nombre, setNombre,
+    documento, setDocumento,
+    mz, setMz,
+    lote, setLote,
+    total, totalPages,
+  } = useCertificates({
+    page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
+    nombre: readParam("nombre") ?? "", documento: readParam("documento") ?? "",
+    mz: readParam("mz") ?? "", lote: readParam("lote") ?? "",
+  });
 
-export default function CertificatesPage() {
-  const [search, setSearch] = useState("");
-  const [nombre, setNombre] = useState("");
-  const [documento, setDocumento] = useState("");
-  const [mz, setMz] = useState("");
-  const [lote, setLote] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  useEffect(() => {
+    syncToUrl({ page: page > 1 ? page : undefined, limit: limit !== 5 ? limit : undefined, search, nombre, documento, mz, lote });
+  }, [page, limit, search, nombre, documento, mz, lote, syncToUrl]);
   const [selectedCertificate, setSelectedCertificate] = useState<Certificate | null>(null);
   const [statusDlg, setStatusDlg] = useState<Certificate | null>(null);
-  const { certificates, loading, submitting, deleteCertificate, updateCertificateStatus } = useCertificates();
-
-  const filteredCertificates = certificates.filter((cert) => {
-    const s = search.toLowerCase();
-    if (s && !cert.certificateNumber.toLowerCase().includes(s) && !cert.owners.some((o) => o.fullName.toLowerCase().includes(s))) {
-      return false;
-    }
-    if (nombre && !cert.owners.some((o) => o.fullName.toLowerCase().includes(nombre.toLowerCase()))) {
-      return false;
-    }
-    if (documento && !cert.owners.some((o) => o.documentNumber.includes(documento))) {
-      return false;
-    }
-    if (mz && !(cert.location.mz ?? "").toLowerCase().includes(mz.toLowerCase())) {
-      return false;
-    }
-    if (lote && !(cert.location.lot ?? "").toLowerCase().includes(lote.toLowerCase())) {
-      return false;
-    }
-    return true;
-  });
-  const totalPages = Math.max(1, Math.ceil(filteredCertificates.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const currentCertificates = filteredCertificates.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const columns: DataTableColumn<Certificate>[] = [
     {
@@ -203,30 +190,29 @@ export default function CertificatesPage() {
           }}
           placeholder="Código o nombre..."
         >
-          <Input placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} className="lg:w-44" />
-          <Input placeholder="DNI / RUC" value={documento} onChange={(e) => setDocumento(e.target.value)} className="lg:w-40" />
-          <Input placeholder="Mz" value={mz} onChange={(e) => setMz(e.target.value)} className="lg:w-24" />
-          <Input placeholder="Lote" value={lote} onChange={(e) => setLote(e.target.value)} className="lg:w-24" />
+          <Input placeholder="Nombre" value={nombre} onChange={(e) => { setNombre(e.target.value); setPage(1); }} className="lg:w-44" />
+          <Input placeholder="DNI / RUC" value={documento} onChange={(e) => { setDocumento(e.target.value); setPage(1); }} className="lg:w-40" />
+          <Input placeholder="Mz" value={mz} onChange={(e) => { setMz(e.target.value); setPage(1); }} className="lg:w-24" />
+          <Input placeholder="Lote" value={lote} onChange={(e) => { setLote(e.target.value); setPage(1); }} className="lg:w-24" />
         </SearchFilters>
 
         <DataTable
           columns={columns}
-          data={currentCertificates}
+          data={certificates}
           rowKey={(cert) => cert.id}
           loading={loading}
           loadingText="Cargando certificados..."
           emptyText="Sin resultados"
         />
 
-        {!loading && (
+        {!loading && total > 0 && (
           <PaginationControls
-            page={safePage}
-            pageSize={pageSize}
-            totalItems={filteredCertificates.length}
-            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            page={page}
+            limit={limit}
+            totalItems={total}
             onPageChange={setPage}
-            onPageSizeChange={(value) => {
-              setPageSize(value);
+            onLimitChange={(value) => {
+              setLimit(value);
               setPage(1);
             }}
           />
@@ -250,5 +236,13 @@ export default function CertificatesPage() {
         />
       </PageContainer>
     </AppLayout>
+  );
+}
+
+export default function CertificatesPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Cargando...</div>}>
+      <CertificatesContent />
+    </Suspense>
   );
 }

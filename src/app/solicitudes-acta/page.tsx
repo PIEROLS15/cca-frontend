@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -10,33 +10,22 @@ import { DeleteConfirmDialog } from "@/components/ui/DeleteConfirmDialog";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { SearchFilters } from "@/components/ui/SearchFilters";
 import { Button } from "@/components/ui/button";
+import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useAssemblyRecordRequests } from "@/hooks/use-assembly-record-requests";
 import { AssemblyRecordRequestsService } from "@/services/assembly-record-requests.service";
 import { formatDateTime } from "@/lib/utils";
 import type { AssemblyRecordRequest } from "@/types/assembly-record-request";
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-
-export default function SolicitudesActaPage() {
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [selectedRequest, setSelectedRequest] = useState<AssemblyRecordRequest | null>(null);
-  const { requests, loading, submitting, deleteRequest } = useAssemblyRecordRequests();
-
-  const filteredRequests = requests.filter((r) => {
-    const s = search.toLowerCase();
-    if (!s) return true;
-    return (
-      r.code.toLowerCase().includes(s) ||
-      r.certificate.certificateNumber.toLowerCase().includes(s) ||
-      r.client.fullName.toLowerCase().includes(s) ||
-      (r.description ?? "").toLowerCase().includes(s)
-    );
+function SolicitudesActaContent() {
+  const { readParam, readNumParam, syncToUrl } = usePaginationSync();
+  const { requests, loading, submitting, deleteRequest, page, setPage, limit, setLimit, search, setSearch, total, totalPages } = useAssemblyRecordRequests({
+    page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
   });
-  const totalPages = Math.max(1, Math.ceil(filteredRequests.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const currentRequests = filteredRequests.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const [selectedRequest, setSelectedRequest] = useState<AssemblyRecordRequest | null>(null);
+
+  useEffect(() => {
+    syncToUrl({ page: page > 1 ? page : undefined, limit: limit !== 5 ? limit : undefined, search });
+  }, [page, limit, search, syncToUrl]);
 
   const columns: DataTableColumn<AssemblyRecordRequest>[] = [
     {
@@ -144,22 +133,21 @@ export default function SolicitudesActaPage() {
 
         <DataTable
           columns={columns}
-          data={currentRequests}
+          data={requests}
           rowKey={(r) => r.id}
           loading={loading}
           loadingText="Cargando solicitudes..."
           emptyText="Sin resultados"
         />
 
-        {!loading && (
+        {!loading && total > 0 && (
           <PaginationControls
-            page={safePage}
-            pageSize={pageSize}
-            totalItems={filteredRequests.length}
-            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            page={page}
+            limit={limit}
+            totalItems={total}
             onPageChange={setPage}
-            onPageSizeChange={(value) => {
-              setPageSize(value);
+            onLimitChange={(value) => {
+              setLimit(value);
               setPage(1);
             }}
           />
@@ -175,5 +163,13 @@ export default function SolicitudesActaPage() {
         />
       </PageContainer>
     </AppLayout>
+  );
+}
+
+export default function SolicitudesActaPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Cargando...</div>}>
+      <SolicitudesActaContent />
+    </Suspense>
   );
 }

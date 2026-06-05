@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect } from "react";
 import { UserSquare2 } from "lucide-react";
 
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -8,31 +8,21 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { SearchFilters } from "@/components/ui/SearchFilters";
+import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useClients } from "@/hooks/use-clients";
 import type { Client } from "@/types/client";
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-
-export default function ComunerosPage() {
-  const { clients, loading } = useClients({
+function ComunerosContent() {
+  const { readParam, readNumParam, syncToUrl } = usePaginationSync();
+  const { clients, loading, page, setPage, limit, setLimit, search, setSearch, total, totalPages } = useClients({
     clientType: "Comunero",
     resourceLabel: "comuneros",
+    initial: { page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "" },
   });
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
 
-  const normalizedSearch = search.trim().toLowerCase();
-  const filteredClients = clients.filter((client) =>
-    client.fullName.toLowerCase().includes(normalizedSearch)
-    || client.documentNumber.toLowerCase().includes(normalizedSearch)
-    || (client.nro_licence || "").toLowerCase().includes(normalizedSearch)
-    || (client.phone || "").toLowerCase().includes(normalizedSearch),
-  );
-
-  const totalPages = Math.max(1, Math.ceil(filteredClients.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const currentClients = filteredClients.slice((safePage - 1) * pageSize, safePage * pageSize);
+  useEffect(() => {
+    syncToUrl({ page: page > 1 ? page : undefined, limit: limit !== 5 ? limit : undefined, search });
+  }, [page, limit, search, syncToUrl]);
 
   const columns: DataTableColumn<Client>[] = [
     {
@@ -82,27 +72,34 @@ export default function ComunerosPage() {
 
         <DataTable
           columns={columns}
-          data={currentClients}
+          data={clients}
           rowKey={(client) => client.id}
           loading={loading}
           loadingText="Cargando comuneros..."
           emptyText="Sin resultados"
         />
 
-        {!loading && (
+        {!loading && total > 0 && (
           <PaginationControls
-            page={safePage}
-            pageSize={pageSize}
-            totalItems={filteredClients.length}
-            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            page={page}
+            limit={limit}
+            totalItems={total}
             onPageChange={setPage}
-            onPageSizeChange={(value) => {
-              setPageSize(value);
+            onLimitChange={(value) => {
+              setLimit(value);
               setPage(1);
             }}
           />
         )}
       </PageContainer>
     </AppLayout>
+  );
+}
+
+export default function ComunerosPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Cargando...</div>}>
+      <ComunerosContent />
+    </Suspense>
   );
 }

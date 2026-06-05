@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -10,12 +10,11 @@ import { DeleteConfirmDialog } from "@/components/ui/DeleteConfirmDialog";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { SearchFilters } from "@/components/ui/SearchFilters";
 import { Button } from "@/components/ui/button";
+import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useCertificateRequests } from "@/hooks/use-certificate-requests";
 import { CertificateRequestsService } from "@/services/certificate-requests.service";
 import { formatDateTime } from "@/lib/utils";
 import type { CertificateRequest } from "@/types/certificate-request";
-
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 const CERTIFICATE_TYPE_LABELS: Record<string, string> = {
   certificadoposesion: "Certificado de Posesión",
@@ -32,22 +31,16 @@ function formatCertificateTypes(types: CertificateRequest["certificateTypes"]) {
     .join(", ");
 }
 
-export default function CertificateRequestsPage() {
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+function CertificateRequestsContent() {
+  const { readParam, readNumParam, syncToUrl } = usePaginationSync();
+  const { requests, loading, submitting, deleteRequest, page, setPage, limit, setLimit, search, setSearch, total, totalPages } = useCertificateRequests({
+    page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
+  });
   const [selectedRequest, setSelectedRequest] = useState<CertificateRequest | null>(null);
-  const { requests, loading, submitting, deleteRequest } = useCertificateRequests();
 
-  const normalizedSearch = search.trim().toLowerCase();
-  const filteredRequests = requests.filter((request) =>
-    request.requestNumber.toLowerCase().includes(normalizedSearch)
-    || request.client.documentNumber.toLowerCase().includes(normalizedSearch)
-    || request.client.fullName.toLowerCase().includes(normalizedSearch),
-  );
-  const totalPages = Math.max(1, Math.ceil(filteredRequests.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const currentRequests = filteredRequests.slice((safePage - 1) * pageSize, safePage * pageSize);
+  useEffect(() => {
+    syncToUrl({ page: page > 1 ? page : undefined, limit: limit !== 5 ? limit : undefined, search });
+  }, [page, limit, search, syncToUrl]);
 
   const columns: DataTableColumn<CertificateRequest>[] = [
     {
@@ -158,27 +151,25 @@ export default function CertificateRequestsPage() {
             setPage(1);
           }}
           placeholder="Buscar por código o documento del cliente..."
-        >
-        </SearchFilters>
+        />
 
         <DataTable
           columns={columns}
-          data={currentRequests}
+          data={requests}
           rowKey={(request) => request.id}
           loading={loading}
           loadingText="Cargando solicitudes..."
           emptyText="Sin resultados"
         />
 
-        {!loading && (
+        {!loading && total > 0 && (
           <PaginationControls
-            page={safePage}
-            pageSize={pageSize}
-            totalItems={filteredRequests.length}
-            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            page={page}
+            limit={limit}
+            totalItems={total}
             onPageChange={setPage}
-            onPageSizeChange={(value) => {
-              setPageSize(value);
+            onLimitChange={(value) => {
+              setLimit(value);
               setPage(1);
             }}
           />
@@ -194,5 +185,13 @@ export default function CertificateRequestsPage() {
         />
       </PageContainer>
     </AppLayout>
+  );
+}
+
+export default function CertificateRequestsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Cargando...</div>}>
+      <CertificateRequestsContent />
+    </Suspense>
   );
 }
