@@ -7,6 +7,9 @@ services:
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT}:9000"
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       HOST: "0.0.0.0"
