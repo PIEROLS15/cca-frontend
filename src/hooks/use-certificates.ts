@@ -10,17 +10,18 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
-export function useCertificates(initial?: { page?: number; limit?: number; search?: string; nombre?: string; documento?: string; mz?: string; lote?: string }) {
+export function useCertificates(initial?: { page?: number; limit?: number; search?: string; documento?: string; mz?: string; lote?: string; sectorId?: number; createdByRoleId?: number }) {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [page, setPage] = useState(initial?.page ?? 1);
   const [limit, setLimit] = useState(initial?.limit ?? 5);
   const [search, setSearch] = useState(initial?.search ?? "");
-  const [nombre, setNombre] = useState(initial?.nombre ?? "");
   const [documento, setDocumento] = useState(initial?.documento ?? "");
   const [mz, setMz] = useState(initial?.mz ?? "");
   const [lote, setLote] = useState(initial?.lote ?? "");
+  const [sectorId, setSectorId] = useState<number | undefined>(initial?.sectorId);
+  const [createdByRoleId, setCreatedByRoleId] = useState<number | undefined>(initial?.createdByRoleId);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
@@ -28,7 +29,7 @@ export function useCertificates(initial?: { page?: number; limit?: number; searc
     setLoading(true);
     try {
       const result = await CertificatesService.list({
-        page, limit, search, name: nombre, documentNumber: documento, mz, lot: lote,
+        page, limit, search, documentNumber: documento, mz, lot: lote, sectorId, createdByRoleId,
       });
       setCertificates(result.data);
       setTotal(result.total);
@@ -38,7 +39,7 @@ export function useCertificates(initial?: { page?: number; limit?: number; searc
     } finally {
       setLoading(false);
     }
-  }, [page, limit, search, nombre, documento, mz, lote]);
+  }, [page, limit, search, documento, mz, lote, sectorId, createdByRoleId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,7 +47,7 @@ export function useCertificates(initial?: { page?: number; limit?: number; searc
       setLoading(true);
       try {
         const result = await CertificatesService.list({
-          page, limit, search, name: nombre, documentNumber: documento, mz, lot: lote,
+          page, limit, search, documentNumber: documento, mz, lot: lote, sectorId, createdByRoleId,
         });
         if (!cancelled) {
           setCertificates(result.data);
@@ -64,7 +65,7 @@ export function useCertificates(initial?: { page?: number; limit?: number; searc
       }
     })();
     return () => { cancelled = true; };
-  }, [page, limit, search, nombre, documento, mz, lote]);
+  }, [page, limit, search, documento, mz, lote, sectorId, createdByRoleId]);
 
   async function deleteCertificate(certificate: Certificate) {
     setSubmitting(true);
@@ -108,14 +109,16 @@ export function useCertificates(initial?: { page?: number; limit?: number; searc
     setLimit,
     search,
     setSearch,
-    nombre,
-    setNombre,
     documento,
     setDocumento,
     mz,
     setMz,
     lote,
     setLote,
+    sectorId,
+    setSectorId,
+    createdByRoleId,
+    setCreatedByRoleId,
     total,
     totalPages,
     deleteCertificate,

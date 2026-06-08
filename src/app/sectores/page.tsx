@@ -192,6 +192,7 @@ function SectoresContent() {
           open={dialogMode === "delete"}
           entityLabel="sector"
           itemName={selectedSector?.name}
+          previewEndpoint={selectedSector ? `/api/sectors/${selectedSector.id}/delete-preview` : undefined}
           submitting={submitting}
           onClose={closeDialog}
           onConfirm={handleDelete}

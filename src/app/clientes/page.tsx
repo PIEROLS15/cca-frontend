@@ -245,6 +245,7 @@ function ClientesContent() {
           open={dialogMode === "delete"}
           entityLabel="cliente"
           itemName={selectedClient?.fullName}
+          previewEndpoint={selectedClient ? `/api/clients/${selectedClient.id}/delete-preview` : undefined}
           submitting={submitting}
           onClose={closeDialog}
           onConfirm={handleDelete}

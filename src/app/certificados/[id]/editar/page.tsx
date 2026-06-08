@@ -24,6 +24,9 @@ export default function EditCertificatePage({ params }: PageProps) {
     terrainTypes,
     sectors,
     updateField,
+    updateOwnerField,
+    addOwner,
+    removeOwner,
     searchRequest,
     handleSubmit,
   } = useCertificateForm({ mode: "edit", certificateId: Number(id) });
@@ -50,6 +53,9 @@ export default function EditCertificatePage({ params }: PageProps) {
           terrainTypes={terrainTypes}
           sectors={sectors}
           onFieldChange={updateField}
+          onOwnerChange={updateOwnerField}
+          onAddOwner={addOwner}
+          onRemoveOwner={removeOwner}
           onSearchRequest={searchRequest}
           onSubmit={handleSubmit}
         />

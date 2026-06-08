@@ -207,6 +207,7 @@ function TiposTerrenoContent() {
           open={dialogMode === "delete"}
           entityLabel="tipo de terreno"
           itemName={selectedTerrainType?.name}
+          previewEndpoint={selectedTerrainType ? `/api/terrain-types/${selectedTerrainType.id}/delete-preview` : undefined}
           submitting={submitting}
           onClose={closeDialog}
           onConfirm={handleDelete}

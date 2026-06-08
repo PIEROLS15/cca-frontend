@@ -60,4 +60,4 @@ export async function apiFetch<T>(
   return res.json();
 }
 
-export { ApiError };
+export { ApiError, getBaseUrl };

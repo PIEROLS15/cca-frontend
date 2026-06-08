@@ -179,6 +179,7 @@ function CertificateRequestsContent() {
           open={Boolean(selectedRequest)}
           entityLabel="solicitud de certificado"
           itemName={selectedRequest?.requestNumber}
+          previewEndpoint={selectedRequest ? `/api/certificate-requests/${selectedRequest.id}/delete-preview` : undefined}
           submitting={submitting}
           onClose={() => setSelectedRequest(null)}
           onConfirm={handleDelete}

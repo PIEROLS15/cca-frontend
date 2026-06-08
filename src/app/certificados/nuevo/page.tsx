@@ -18,6 +18,9 @@ export default function NewCertificatePage() {
     terrainTypes,
     sectors,
     updateField,
+    updateOwnerField,
+    addOwner,
+    removeOwner,
     searchRequest,
     handleSubmit,
   } = useCertificateForm({ mode: "create" });
@@ -44,6 +47,9 @@ export default function NewCertificatePage() {
           terrainTypes={terrainTypes}
           sectors={sectors}
           onFieldChange={updateField}
+          onOwnerChange={updateOwnerField}
+          onAddOwner={addOwner}
+          onRemoveOwner={removeOwner}
           onSearchRequest={searchRequest}
           onSubmit={handleSubmit}
         />
