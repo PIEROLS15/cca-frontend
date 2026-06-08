@@ -5,12 +5,13 @@ import { Loader2, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Sector } from "@/types/sector";
 import type { TerrainType } from "@/types/terrain-type";
-import type { CertificateFormState } from "@/hooks/use-certificate-form";
+import type { CertificateFormState, OwnerFormState } from "@/hooks/use-certificate-form";
 
 function sectionTitle(text: string) {
   return <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{text}</h3>;
@@ -25,6 +26,9 @@ interface CertificateFormProps {
   terrainTypes: TerrainType[];
   sectors: Sector[];
   onFieldChange: <Key extends keyof CertificateFormState>(field: Key, value: CertificateFormState[Key]) => void;
+  onOwnerChange: <Key extends keyof OwnerFormState>(index: number, field: Key, value: OwnerFormState[Key]) => void;
+  onAddOwner: () => void;
+  onRemoveOwner: (index: number) => void;
   onSearchRequest: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }
@@ -38,9 +42,21 @@ export function CertificateForm({
   terrainTypes,
   sectors,
   onFieldChange,
+  onOwnerChange,
+  onAddOwner,
+  onRemoveOwner,
   onSearchRequest,
   onSubmit,
 }: CertificateFormProps) {
+  const selectedTerrainType = terrainTypes.find((terrainType) => String(terrainType.id) === form.terrainTypeId) || null;
+  const config = selectedTerrainType?.config || null;
+  const isAreaPerimeterMode = form.measurementModeUsed === "AREA_PERIMETER";
+  const isManualTotalAreaMode = form.measurementModeUsed === "MANUAL_TOTAL_AREA";
+  const showMzLot = config?.showMzLot !== false;
+  const showAdditionalMeasureToggle = config?.allowAdditionalMeasure === true;
+  const showAreaPerimeterToggle = config?.allowAreaPerimeterToggle === true;
+  const showAdditionalMeasureFields = showAdditionalMeasureToggle && form.additionalMeasureEnabled;
+
   if (loading) {
     return (
       <Card className="p-8">
@@ -84,38 +100,61 @@ export function CertificateForm({
 
         <hr className="border-t" />
 
-        <div className="space-y-2">
-          {sectionTitle("Titular")}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Nombres y Apellidos</Label>
-              <Input value={form.owner1.fullName} disabled placeholder="—" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">DNI</Label>
-              <Input value={form.owner1.documentNumber} disabled placeholder="—" className="font-mono" />
-            </div>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            {sectionTitle("Dueños")}
+            <Button type="button" variant="outline" size="sm" onClick={onAddOwner} className="gap-1.5">
+              Agregar dueño
+            </Button>
           </div>
-        </div>
 
-        <div className="space-y-2">
-          {sectionTitle("Cónyuge / Conviviente")}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Nombres y Apellidos</Label>
-              <Input value={form.owner2.fullName} disabled placeholder="—" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">DNI</Label>
-              <Input value={form.owner2.documentNumber} disabled placeholder="—" className="font-mono" />
-            </div>
+          <div className="space-y-3">
+            {form.owners.map((owner, index) => (
+              <div key={`${index}-${owner.documentNumber || "empty"}`} className="rounded-md border p-3 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Dueño {index + 1}
+                  </span>
+                  {form.owners.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onRemoveOwner(index)}
+                      className="h-8 px-2 text-destructive hover:text-destructive"
+                    >
+                      Quitar
+                    </Button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Nombres y Apellidos</Label>
+                    <Input
+                      value={owner.fullName}
+                      onChange={(event) => onOwnerChange(index, "fullName", event.target.value)}
+                      placeholder="Ingrese"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">DNI</Label>
+                    <Input
+                      value={owner.documentNumber}
+                      onChange={(event) => onOwnerChange(index, "documentNumber", event.target.value)}
+                      placeholder="Ingrese"
+                      className="font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
         <hr className="border-t" />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 sm:col-span-1">
             <Label className="text-xs font-semibold">Tipo de Terreno</Label>
             <Select value={form.terrainTypeId} onValueChange={(value) => onFieldChange("terrainTypeId", value)}>
               <SelectTrigger>
@@ -128,39 +167,109 @@ export function CertificateForm({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Ancho</Label>
-            <Input
-              type="number"
-              step="any"
-              placeholder="Ingrese"
-              value={form.width}
-              onChange={(event) => onFieldChange("width", event.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Largo</Label>
-            <Input
-              type="number"
-              step="any"
-              placeholder="Ingrese"
-              value={form.length}
-              onChange={(event) => onFieldChange("length", event.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Área Total</Label>
-            <Input
-              placeholder="Calculado automáticamente"
-              value={form.totalArea}
-              readOnly
-              disabled
-              className="bg-muted"
-            />
-          </div>
+
+          {(showAdditionalMeasureToggle || showAreaPerimeterToggle) && (
+            <div className="space-y-2 sm:col-span-3">
+              <Label className="text-xs font-semibold">Opciones</Label>
+              <div className="flex flex-wrap gap-3 rounded-md border border-input px-3 py-2">
+                {showAdditionalMeasureToggle && (
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox
+                      checked={form.additionalMeasureEnabled}
+                      onCheckedChange={(checked) => onFieldChange("additionalMeasureEnabled", checked === true)}
+                    />
+                    Agregar una medida adicional
+                  </label>
+                )}
+                {showAreaPerimeterToggle && (
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox
+                      checked={isAreaPerimeterMode}
+                      onCheckedChange={(checked) => onFieldChange("measurementModeUsed", checked === true ? "AREA_PERIMETER" : "RECTANGULAR_AUTO")}
+                    />
+                    Agregar sólo Área total y Perímetro
+                  </label>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {isAreaPerimeterMode ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Área</Label>
+              <Input placeholder="Ingrese" value={form.area} onChange={(event) => onFieldChange("area", event.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Perímetro</Label>
+              <Input placeholder="Ingrese" value={form.perimeter} onChange={(event) => onFieldChange("perimeter", event.target.value)} />
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Ancho</Label>
+              <Input
+                type="number"
+                step="any"
+                placeholder="Ingrese"
+                value={form.width}
+                onChange={(event) => onFieldChange("width", event.target.value)}
+                disabled={isManualTotalAreaMode}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Largo</Label>
+              <Input
+                type="number"
+                step="any"
+                placeholder="Ingrese"
+                value={form.length}
+                onChange={(event) => onFieldChange("length", event.target.value)}
+                disabled={isManualTotalAreaMode}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Área Total</Label>
+              <Input
+                placeholder={isManualTotalAreaMode ? "Ingrese" : "Calculado automáticamente"}
+                value={form.totalArea}
+                onChange={(event) => onFieldChange("totalArea", event.target.value)}
+                readOnly={!isManualTotalAreaMode}
+                disabled={!isManualTotalAreaMode}
+                className={!isManualTotalAreaMode ? "bg-muted" : undefined}
+              />
+            </div>
+          </div>
+        )}
+
+        {showAdditionalMeasureFields && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Ancho adicional</Label>
+              <Input
+                type="number"
+                step="any"
+                placeholder="Ingrese"
+                value={form.additionalWidth}
+                onChange={(event) => onFieldChange("additionalWidth", event.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Largo adicional</Label>
+              <Input
+                type="number"
+                step="any"
+                placeholder="Ingrese"
+                value={form.additionalLength}
+                onChange={(event) => onFieldChange("additionalLength", event.target.value)}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className={`grid grid-cols-1 gap-4 ${showMzLot ? "sm:grid-cols-3" : "sm:grid-cols-1"}`}>
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Sector</Label>
             <Select value={form.sectorId} onValueChange={(value) => onFieldChange("sectorId", value)}>
@@ -174,14 +283,18 @@ export function CertificateForm({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">MZ</Label>
-            <Input placeholder="Ingrese" value={form.mz} onChange={(event) => onFieldChange("mz", event.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Lote</Label>
-            <Input placeholder="Ingrese" value={form.lot} onChange={(event) => onFieldChange("lot", event.target.value)} />
-          </div>
+          {showMzLot && (
+            <>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">MZ</Label>
+                <Input placeholder="Ingrese" value={form.mz} onChange={(event) => onFieldChange("mz", event.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Lote</Label>
+                <Input placeholder="Ingrese" value={form.lot} onChange={(event) => onFieldChange("lot", event.target.value)} />
+              </div>
+            </>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

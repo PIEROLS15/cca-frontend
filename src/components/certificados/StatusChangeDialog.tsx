@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CertificateStatusBadge } from "@/components/certificados/CertificateStatusBadge";
 import type { Certificate, CertificateStatus } from "@/types/certificate";
 
 const STATUS_OPTIONS: CertificateStatus[] = ["Por Firmar", "Por Recoger", "Entregado"];
@@ -47,7 +47,7 @@ export function StatusChangeDialog({ open, certificate, submitting, onClose, onC
               </div>
               <div className="mt-2 flex items-center gap-2 text-xs">
                 <span className="text-muted-foreground">Estado actual:</span>
-                <Badge variant="outline" className="font-medium">{certificate.status}</Badge>
+                <CertificateStatusBadge status={certificate.status} />
               </div>
             </div>
           )}

@@ -105,7 +105,9 @@ export function useAssemblyRecordForm({ mode, requestId }: UseAssemblyRecordForm
     try {
       const certificate = await CertificatesService.lookupByNumber(number);
       const ownerName = certificate.owners.map((o) => o.fullName).join(", ");
-      const area = certificate.terrain.totalArea
+      const area = certificate.terrain.area
+        ? String(certificate.terrain.area)
+        : certificate.terrain.totalArea
         ? String(certificate.terrain.totalArea)
         : (certificate.terrain.width && certificate.terrain.length
           ? String(Number(certificate.terrain.width) * Number(certificate.terrain.length))
@@ -142,7 +144,9 @@ export function useAssemblyRecordForm({ mode, requestId }: UseAssemblyRecordForm
         const request = await AssemblyRecordRequestsService.getById(id);
         const certificate = await CertificatesService.lookupByNumber(request.certificate.certificateNumber);
         const ownerName = certificate.owners.map((o) => o.fullName).join(", ");
-        const area = certificate.terrain.totalArea
+        const area = certificate.terrain.area
+          ? String(certificate.terrain.area)
+          : certificate.terrain.totalArea
           ? String(certificate.terrain.totalArea)
           : (certificate.terrain.width && certificate.terrain.length
             ? String(Number(certificate.terrain.width) * Number(certificate.terrain.length))

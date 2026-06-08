@@ -1,16 +1,25 @@
 export type CertificateStatus = "Por Firmar" | "Por Recoger" | "Entregado";
 
+import type { TerrainMeasurementMode, TerrainType } from "./terrain-type";
+
 export interface CertificateOwner {
   id: number;
   fullName: string;
   documentNumber: string;
+  order?: number | null;
+  source?: string | null;
 }
 
 export interface CertificateTerrain {
-  terrainType: { id: number; name: string } | null;
+  terrainType: TerrainType | null;
   width: number | null;
   length: number | null;
   totalArea: number | null;
+  area: number | null;
+  perimeter: number | null;
+  additionalWidth: number | null;
+  additionalLength: number | null;
+  measurementModeUsed: TerrainMeasurementMode;
 }
 
 export interface CertificateLocation {
@@ -33,12 +42,14 @@ export interface CertificateCreatedBy {
 
 export interface Certificate {
   id: number;
+  certificateRequestId: number | null;
   owners: CertificateOwner[];
   terrain: CertificateTerrain;
   location: CertificateLocation;
   borders: CertificateBorders;
   certificateNumber: string;
   requestNumber: string | null;
+  legacyPayload?: unknown | null;
   status: CertificateStatus;
   createdBy: CertificateCreatedBy;
   createdAt: string;
@@ -48,11 +59,17 @@ export interface Certificate {
 export interface CertificatePayload {
   owners: { id: number }[];
   requestNumber: string;
+  certificateRequestId?: number | null;
   terrain: {
     terrainType: { id: number };
     width?: number | null;
     length?: number | null;
     totalArea?: number | null;
+    area?: number | null;
+    perimeter?: number | null;
+    additionalWidth?: number | null;
+    additionalLength?: number | null;
+    measurementModeUsed?: TerrainMeasurementMode;
   };
   location: {
     sectors: { id: number };

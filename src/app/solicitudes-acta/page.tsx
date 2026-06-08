@@ -157,6 +157,7 @@ function SolicitudesActaContent() {
           open={Boolean(selectedRequest)}
           entityLabel="solicitud de acta"
           itemName={selectedRequest?.code}
+          previewEndpoint={selectedRequest ? `/api/assembly-record-requests/${selectedRequest.id}/delete-preview` : undefined}
           submitting={submitting}
           onClose={() => setSelectedRequest(null)}
           onConfirm={handleDelete}
