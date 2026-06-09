@@ -8,6 +8,7 @@ import type { Client, ClientPayload, ClientType } from "@/types/client";
 
 interface UseClientsOptions {
   clientType?: ClientType;
+  documentNumber?: string;
   resourceLabel?: string;
   initial?: { page?: number; limit?: number; search?: string };
 }
@@ -17,7 +18,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 export function useClients(options: UseClientsOptions = {}) {
-  const { clientType, resourceLabel = "clientes", initial } = options;
+  const { clientType, documentNumber, resourceLabel = "clientes", initial } = options;
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -30,7 +31,7 @@ export function useClients(options: UseClientsOptions = {}) {
   const loadClients = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await ClientsService.list({ page, limit, search, clientType });
+      const result = await ClientsService.list({ page, limit, search, documentNumber, clientType });
       setClients(result.data);
       setTotal(result.total);
       setTotalPages(result.totalPages);
@@ -39,14 +40,14 @@ export function useClients(options: UseClientsOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, search, clientType, resourceLabel]);
+  }, [page, limit, search, documentNumber, clientType, resourceLabel]);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       setLoading(true);
       try {
-        const result = await ClientsService.list({ page, limit, search, clientType });
+        const result = await ClientsService.list({ page, limit, search, documentNumber, clientType });
         if (!cancelled) {
           setClients(result.data);
           setTotal(result.total);
@@ -63,7 +64,7 @@ export function useClients(options: UseClientsOptions = {}) {
       }
     })();
     return () => { cancelled = true; };
-  }, [page, limit, search, clientType, resourceLabel]);
+  }, [page, limit, search, documentNumber, clientType, resourceLabel]);
 
   async function createClient(payload: ClientPayload) {
     setSubmitting(true);
