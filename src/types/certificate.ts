@@ -42,6 +42,7 @@ export interface CertificateCreatedBy {
 
 export interface Certificate {
   id: number;
+  verificationToken?: string | null;
   certificateRequestId: number | null;
   owners: CertificateOwner[];
   terrain: CertificateTerrain;
@@ -50,6 +51,7 @@ export interface Certificate {
   certificateNumber: string;
   requestNumber: string | null;
   legacyPayload?: unknown | null;
+  issuedSnapshot?: unknown | null;
   status: CertificateStatus;
   createdBy: CertificateCreatedBy;
   createdAt: string;
