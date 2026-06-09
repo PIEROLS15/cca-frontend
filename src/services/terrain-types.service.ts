@@ -22,10 +22,4 @@ export const TerrainTypesService = {
       body: JSON.stringify({ name }),
     });
   },
-
-  remove(id: number) {
-    return apiFetch<void>(`/api/terrain-types/${id}`, {
-      method: "DELETE",
-    });
-  },
 };
