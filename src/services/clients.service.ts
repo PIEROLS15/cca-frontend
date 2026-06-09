@@ -3,9 +3,10 @@ import type { PaginatedApiResponse } from "@/types/api";
 import type { Client, ClientLookupResult, ClientPayload, ClientType, PersonaData } from "@/types/client";
 
 export const ClientsService = {
-  async list({ page = 1, limit = 5, search, clientType }: { page?: number; limit?: number; search?: string; clientType?: ClientType } = {}) {
+  async list({ page = 1, limit = 5, search, documentNumber, clientType }: { page?: number; limit?: number; search?: string; documentNumber?: string; clientType?: ClientType } = {}) {
     const params = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (search) params.set("search", search);
+    if (documentNumber) params.set("documentNumber", documentNumber);
     if (clientType) params.set("clientType", clientType);
     return apiFetch<PaginatedApiResponse<Client>>(`/api/clients?${params.toString()}`);
   },

@@ -29,11 +29,13 @@ type DialogMode = "create" | "edit" | "delete" | null;
 
 function ClientesContent() {
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
-  const { clients, loading, submitting, createClient, updateClient, deleteClient, page, setPage, limit, setLimit, search, setSearch, total, totalPages } = useClients({
-    initial: { page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "" },
-  });
   const [documentNumber, setDocumentNumber] = useState(readParam("documentNumber") ?? "");
   const [clientType, setClientType] = useState<ClientType | "">((readParam("clientType") as ClientType | "") ?? "");
+  const { clients, loading, submitting, createClient, updateClient, deleteClient, page, setPage, limit, setLimit, search, setSearch, total } = useClients({
+    clientType: clientType || undefined,
+    documentNumber: documentNumber || undefined,
+    initial: { page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "" },
+  });
 
   useEffect(() => {
     syncToUrl({ page: page > 1 ? page : undefined, limit: limit !== 5 ? limit : undefined, search, documentNumber, clientType });
