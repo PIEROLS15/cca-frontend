@@ -1,6 +1,7 @@
 import { ApiError, apiFetch, getBaseUrl } from "./api";
 import type { PaginatedApiResponse } from "@/types/api";
 import type { Certificate, CertificatePayload } from "@/types/certificate";
+import type { CertificateVerificationResponse } from "@/types/certificate-verification";
 
 export const CertificatesService = {
   async list({ page = 1, limit = 5, search, documentNumber, mz, lot, sectorId, createdByRoleId }: { page?: number; limit?: number; search?: string; documentNumber?: string; mz?: string; lot?: string; sectorId?: number; createdByRoleId?: number } = {}) {
@@ -49,6 +50,12 @@ export const CertificatesService = {
 
   lookupByNumber(number: string) {
     return apiFetch<Certificate>(`/api/certificates/by-number/${number}`);
+  },
+
+  verifyByToken(token: string) {
+    return apiFetch<{ message: string; error: boolean; status: number; data: CertificateVerificationResponse }>(
+      `/api/public/certificates/${encodeURIComponent(token)}`,
+    );
   },
 
   create(payload: CertificatePayload) {
