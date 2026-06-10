@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useEffect } from "react";
-import { UserSquare2 } from "lucide-react";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -14,7 +13,7 @@ import type { Client } from "@/types/client";
 
 function ComunerosContent() {
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
-  const { clients, loading, page, setPage, limit, setLimit, search, setSearch, total, totalPages } = useClients({
+  const { clients, loading, page, setPage, limit, setLimit, search, setSearch, total } = useClients({
     clientType: "Comunero",
     resourceLabel: "comuneros",
     initial: { page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "" },
@@ -35,14 +34,7 @@ function ComunerosContent() {
     {
       key: "fullName",
       header: "Nombres",
-      render: (client) => (
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <UserSquare2 className="h-4 w-4" />
-          </div>
-          <span className="font-medium text-foreground">{client.fullName}</span>
-        </div>
-      ),
+      render: (client) => <span className="font-medium text-foreground">{client.fullName}</span>,
     },
     {
       key: "documentNumber",
