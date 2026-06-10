@@ -35,6 +35,7 @@ export interface CertificateRequest {
   exposure: string;
   attachments: CertificateRequestAttachment[];
   createdBy: CertificateRequestCreatedBy;
+  legacyPayload?: unknown | null;
   createdAt: string;
   updatedAt: string;
 }

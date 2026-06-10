@@ -93,6 +93,17 @@ const emptyForm: CertificateRequestFormState = {
   partnerClient: emptyPerson,
 };
 
+type LegacyCertificateRequestPayload = {
+  destination?: string;
+  type?: string[];
+  attachment?: string[];
+  otherType?: string;
+  sectorLocation?: string;
+  exposure?: string;
+  requestDescription?: string;
+  description?: string;
+};
+
 interface CertificateRequestFormProps {
   mode: "create" | "edit";
   requestId?: string;
@@ -102,34 +113,101 @@ function sectionTitle(text: string) {
   return <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{text}</h3>;
 }
 
+function normalizeComparableText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function getLegacyPayload(payload: unknown) {
+  return payload && typeof payload === "object" ? payload as LegacyCertificateRequestPayload : null;
+}
+
+function getAttachmentTextValues(items: Array<{ type: string; phoneNumber?: string }> | string[] | undefined, legacyItems: string[] | undefined) {
+  const values = [
+    ...((Array.isArray(items) ? items : []) as Array<{ type: string; phoneNumber?: string }>).map((item) => item.type),
+    ...(Array.isArray(legacyItems) ? legacyItems : []),
+  ];
+
+  return values.filter(Boolean);
+}
+
+function extractPhoneNumber(values: string[]) {
+  for (const value of values) {
+    const match = value.match(/(\d{6,})/);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  return "";
+}
+
 function mapRequestToForm(request: CertificateRequest): CertificateRequestFormState {
-  const certificateTypeValues = request.certificateTypes.map((item) => item.type.toLowerCase());
-  const attachmentValues = request.attachments.map((item) => item.type.toLowerCase());
-  const cellphoneAttachment = request.attachments.find((item) => item.type.toLowerCase() === "celular");
-  const otherType = request.certificateTypes.find((item) => item.type.toLowerCase() === "otros")?.otherType || "";
+  const legacyPayload = getLegacyPayload(request.legacyPayload);
+  const certificateTypeValues = [
+    ...request.certificateTypes.map((item) => item.type),
+    ...(Array.isArray(legacyPayload?.type) ? legacyPayload.type : []),
+  ];
+  const attachmentValues = getAttachmentTextValues(request.attachments, legacyPayload?.attachment);
+  const cellphoneAttachment = request.attachments.find((item) => normalizeComparableText(item.type) === "celular");
+  const otherType = request.certificateTypes.find((item) => normalizeComparableText(item.type) === "otros")?.otherType
+    || legacyPayload?.otherType
+    || "";
+
+  const hasCertificateType = (needle: string) => certificateTypeValues.some((value) => {
+    const normalized = normalizeComparableText(value);
+
+    if (needle === "posesion") {
+      return normalized.includes("certificado") && normalized.includes("posesion");
+    }
+
+    if (needle === "planomemoria") {
+      return normalized.includes("plano") && normalized.includes("memoria");
+    }
+
+    return normalized === needle;
+  });
+
+  const normalizedDestination = [request.destination, legacyPayload?.destination]
+    .filter(Boolean)
+    .map((value) => normalizeComparableText(String(value)))[0] || "";
+
+  const phoneNumber = cellphoneAttachment?.phoneNumber || extractPhoneNumber(attachmentValues) || "";
 
   return {
     isComunero: request.isComunero ? "si" : "no",
-    destination: request.destination === "Ingeniero" || request.destination === "Secretaria"
-      ? request.destination
-      : "",
-    requestDescription: request.requestDescription,
+    destination: normalizedDestination.includes("ingeniero")
+      ? "Ingeniero"
+      : normalizedDestination.includes("secretaria")
+        ? "Secretaria"
+        : "",
+    requestDescription: request.requestDescription || legacyPayload?.requestDescription || legacyPayload?.description || "",
     certificateTypes: {
-      posesion: certificateTypeValues.includes("certificadoposesion"),
-      planoMemoria: certificateTypeValues.includes("planomemoria"),
-      otros: certificateTypeValues.includes("otros"),
+      posesion: hasCertificateType("posesion"),
+      planoMemoria: hasCertificateType("planomemoria"),
+      otros: hasCertificateType("otros"),
     },
     otherCertificateType: otherType,
-    sectorLocation: request.sectorLocation,
-    exposure: request.exposure,
+    sectorLocation: request.sectorLocation || legacyPayload?.sectorLocation || "",
+    exposure: request.exposure || legacyPayload?.exposure || "",
     attachments: {
-      certAnterior: attachmentValues.includes("certanterior"),
-      dni: attachmentValues.includes("copiadni"),
-      compraVenta: attachmentValues.includes("compraventa"),
-      planoMemoria: attachmentValues.includes("copiaplanomemoria"),
-      celular: attachmentValues.includes("celular"),
+      certAnterior: attachmentValues.some((value) => {
+        const normalized = normalizeComparableText(value);
+        return normalized.includes("cert") && normalized.includes("anterior");
+      }),
+      dni: attachmentValues.some((value) => normalizeComparableText(value).includes("dni")),
+      compraVenta: attachmentValues.some((value) => normalizeComparableText(value).includes("compraventa")),
+      planoMemoria: attachmentValues.some((value) => {
+        const normalized = normalizeComparableText(value);
+        return normalized.includes("plano") && normalized.includes("memoria");
+      }),
+      celular: attachmentValues.some((value) => normalizeComparableText(value).includes("celular")),
     },
-    phoneNumber: cellphoneAttachment?.phoneNumber || "",
+    phoneNumber,
     client: {
       fullName: request.client.fullName,
       documentNumber: request.client.documentNumber,
