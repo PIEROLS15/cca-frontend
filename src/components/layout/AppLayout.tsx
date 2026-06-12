@@ -26,6 +26,7 @@ import { useTheme } from "@/store/theme";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { canAccessModule, canAccessPath } from "@/lib/access-control";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,20 +37,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const nav = [
-  { to: "/", label: "Inicio", icon: Home },
-  { to: "/certificados", label: "Certificados", icon: FileText },
-  { to: "/sectores", label: "Sectores", icon: Building2 },
-  { to: "/tipos-terreno", label: "Tipos de Terreno", icon: Map },
-  { to: "/clientes", label: "Clientes", icon: Users },
-  { to: "/comuneros", label: "Comuneros", icon: UserSquare2 },
-  { to: "/solicitudes-certificados", label: "Solicitudes Cert.", icon: FileSignature },
-  { to: "/solicitudes-acta", label: "Solicitudes Acta", icon: ScrollText },
-  { to: "/usuarios", label: "Usuarios", icon: UserCircle },
+  { to: "/", label: "Inicio", icon: Home, moduleKey: "dashboard" },
+  { to: "/certificados", label: "Certificados", icon: FileText, moduleKey: "certificates" },
+  { to: "/sectores", label: "Sectores", icon: Building2, moduleKey: "sectors" },
+  { to: "/tipos-terreno", label: "Tipos de Terreno", icon: Map, moduleKey: "terrain-types" },
+  { to: "/clientes", label: "Clientes", icon: Users, moduleKey: "clients" },
+  { to: "/comuneros", label: "Comuneros", icon: UserSquare2, moduleKey: "comuneros" },
+  { to: "/solicitudes-certificados", label: "Solicitudes Cert.", icon: FileSignature, moduleKey: "certificate-requests" },
+  { to: "/solicitudes-acta", label: "Solicitudes Acta", icon: ScrollText, moduleKey: "assembly-record-requests" },
+  { to: "/usuarios", label: "Usuarios", icon: UserCircle, moduleKey: "users" },
 ];
-
-const labelMap: Record<string, string> = Object.fromEntries(
-  nav.map((n) => [n.to, n.label]),
-);
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { user, isAuthenticated, loading, logout } = useSession();
@@ -67,12 +64,19 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }, [loading, isAuthenticated, router]);
 
   useEffect(() => {
+    if (!loading && user && !canAccessPath(user, pathname)) {
+      router.replace("/");
+    }
+  }, [loading, user, pathname, router]);
+
+  useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
-  if (loading || !user) return null;
+  const current = nav.find((item) => item.to === pathname)?.label ?? nav.find((item) => pathname.startsWith(item.to) && item.to !== "/")?.label ?? "Inicio";
+  const visibleNav = user ? nav.filter((item) => canAccessModule(user, item.moduleKey)) : [];
 
-  const current = labelMap[pathname] ?? "Inicio";
+  if (loading || !user) return null;
   const initials = user.fullName
     .split(" ")
     .map((n) => n[0])
@@ -188,7 +192,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {nav.map((item) => {
+          {visibleNav.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.to;
             return (
