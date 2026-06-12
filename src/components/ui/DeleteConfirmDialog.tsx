@@ -72,22 +72,41 @@ export function DeleteConfirmDialog({
   onClose,
   onConfirm,
 }: DeleteConfirmDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DeleteConfirmDialogBody
+        key={`${open ? "open" : "closed"}-${previewEndpoint ?? "none"}`}
+        open={open}
+        entityLabel={entityLabel}
+        itemName={itemName}
+        previewEndpoint={previewEndpoint}
+        submitting={submitting}
+        onClose={onClose}
+        onConfirm={onConfirm}
+      />
+    </Dialog>
+  );
+}
+
+function DeleteConfirmDialogBody({
+  open,
+  entityLabel,
+  itemName,
+  previewEndpoint,
+  submitting,
+  onClose,
+  onConfirm,
+}: DeleteConfirmDialogProps) {
   const [preview, setPreview] = useState<DeletionPreview | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(Boolean(open && previewEndpoint));
   const [previewError, setPreviewError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open || !previewEndpoint) {
-      setPreview(null);
-      setPreviewError(null);
-      setPreviewLoading(false);
       return;
     }
 
     let active = true;
-    setPreview(null);
-    setPreviewError(null);
-    setPreviewLoading(true);
 
     apiFetch<DeletionPreview>(previewEndpoint)
       .then((data) => {
@@ -116,63 +135,61 @@ export function DeleteConfirmDialog({
   const effectiveItemName = itemName || preview?.itemName;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-            <AlertTriangle className="h-6 w-6" />
-          </div>
-          <DialogTitle className="text-center">{`Eliminar ${entityLabel}`}</DialogTitle>
-          <DialogDescription className="text-center">
-            {effectiveItemName
-              ? `¿Estás seguro de eliminar ${effectiveItemName}? Esta acción no se puede deshacer.`
-              : "Esta acción no se puede deshacer."}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-3">
-          {previewLoading && (
-            <div className="rounded-md border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-              Cargando impacto de eliminación...
-            </div>
-          )}
-
-          {previewError && (
-            <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-warning-foreground">
-              {previewError}
-            </div>
-          )}
-
-          {preview && (
-            <div className="space-y-3 rounded-md border border-border bg-muted/20 p-3">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Impacto estimado</div>
-              <ImpactSection title="Se eliminará" tone="destructive" items={preview.willDelete} />
-              <ImpactSection title="Se desenganchará" tone="warning" items={preview.willSetNull} />
-              <ImpactSection title="Bloquea la eliminación" tone="muted" items={preview.willBlock} />
-
-              {!preview.willDelete.length && !preview.willSetNull.length && !preview.willBlock.length && (
-                <div className="text-sm text-muted-foreground">No hay relaciones asociadas que mostrar.</div>
-              )}
-
-              {!preview.canDelete && (
-                <div className="rounded-md border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
-                  No se puede eliminar mientras existan dependencias bloqueantes.
-                </div>
-              )}
-            </div>
-          )}
+    <DialogContent className="sm:max-w-2xl">
+      <DialogHeader>
+        <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+          <AlertTriangle className="h-6 w-6" />
         </div>
+        <DialogTitle className="text-center">{`Eliminar ${entityLabel}`}</DialogTitle>
+        <DialogDescription className="text-center">
+          {effectiveItemName
+            ? `¿Estás seguro de eliminar ${effectiveItemName}? Esta acción no se puede deshacer.`
+            : "Esta acción no se puede deshacer."}
+        </DialogDescription>
+      </DialogHeader>
 
-        <DialogFooter className="sm:justify-center">
-          <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
-            Cancelar
-          </Button>
-          <Button type="button" variant="destructive" onClick={onConfirm} disabled={!canConfirm}>
-            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Sí, eliminar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <div className="space-y-3">
+        {previewLoading && (
+          <div className="rounded-md border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+            Cargando impacto de eliminación...
+          </div>
+        )}
+
+        {previewError && (
+          <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-warning-foreground">
+            {previewError}
+          </div>
+        )}
+
+        {preview && (
+          <div className="space-y-3 rounded-md border border-border bg-muted/20 p-3">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Impacto estimado</div>
+            <ImpactSection title="Se eliminará" tone="destructive" items={preview.willDelete} />
+            <ImpactSection title="Se desenganchará" tone="warning" items={preview.willSetNull} />
+            <ImpactSection title="Bloquea la eliminación" tone="muted" items={preview.willBlock} />
+
+            {!preview.willDelete.length && !preview.willSetNull.length && !preview.willBlock.length && (
+              <div className="text-sm text-muted-foreground">No hay relaciones asociadas que mostrar.</div>
+            )}
+
+            {!preview.canDelete && (
+              <div className="rounded-md border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
+                No se puede eliminar mientras existan dependencias bloqueantes.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <DialogFooter className="sm:justify-center">
+        <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
+          Cancelar
+        </Button>
+        <Button type="button" variant="destructive" onClick={onConfirm} disabled={!canConfirm}>
+          {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+          Sí, eliminar
+        </Button>
+      </DialogFooter>
+    </DialogContent>
   );
 }

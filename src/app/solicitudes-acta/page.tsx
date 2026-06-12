@@ -18,7 +18,7 @@ import type { AssemblyRecordRequest } from "@/types/assembly-record-request";
 
 function SolicitudesActaContent() {
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
-  const { requests, loading, submitting, deleteRequest, page, setPage, limit, setLimit, search, setSearch, total, totalPages } = useAssemblyRecordRequests({
+  const { requests, loading, submitting, deleteRequest, page, setPage, limit, setLimit, search, setSearch, total } = useAssemblyRecordRequests({
     page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
   });
   const [selectedRequest, setSelectedRequest] = useState<AssemblyRecordRequest | null>(null);

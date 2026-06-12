@@ -72,7 +72,7 @@ function CertificatesContent() {
     lote, setLote,
     sectorId, setSectorId,
     createdByRoleId, setCreatedByRoleId,
-    total, totalPages,
+    total,
   } = useCertificates({
     page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
     documento: readParam("documento") ?? "",
@@ -107,7 +107,7 @@ function CertificatesContent() {
     if (matchedSector && sectorId !== matchedSector.id) {
       setSectorId(matchedSector.id);
     }
-  }, [legacySectorId, sectorParam, sectors, setSectorId]);
+  }, [legacySectorId, sectorParam, sectors, sectorId, setSectorId]);
 
   useEffect(() => {
     if (legacyCreatedByRoleId || !createdByParam || roles.length === 0) return;
@@ -115,7 +115,7 @@ function CertificatesContent() {
     if (matchedRole && createdByRoleId !== matchedRole.id) {
       setCreatedByRoleId(matchedRole.id);
     }
-  }, [legacyCreatedByRoleId, createdByParam, roles, setCreatedByRoleId]);
+  }, [legacyCreatedByRoleId, createdByParam, roles, createdByRoleId, setCreatedByRoleId]);
 
   useEffect(() => {
     if (!catalogsLoaded) return;
