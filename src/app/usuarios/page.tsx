@@ -19,7 +19,7 @@ import type { User } from "@/types/user";
 
 function UsuariosContent() {
   const { readParam, readNumParam, readBoolParam, syncToUrl } = usePaginationSync();
-  const { users, roles, loading, submitting, toggleUserStatus, createUser, updateUser, page, setPage, limit, setLimit, search, setSearch, roleId, setRoleId, isActive, setIsActive, total, totalPages } = useUsers({
+  const { users, roles, loading, submitting, toggleUserStatus, createUser, updateUser, page, setPage, limit, setLimit, search, setSearch, roleId, setRoleId, isActive, setIsActive, total } = useUsers({
     page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
     roleId: readNumParam("roleId", 0) || undefined, isActive: readBoolParam("isActive"),
   });
