@@ -33,7 +33,7 @@ function formatCertificateTypes(types: CertificateRequest["certificateTypes"]) {
 
 function CertificateRequestsContent() {
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
-  const { requests, loading, submitting, deleteRequest, page, setPage, limit, setLimit, search, setSearch, total, totalPages } = useCertificateRequests({
+  const { requests, loading, submitting, deleteRequest, page, setPage, limit, setLimit, search, setSearch, total } = useCertificateRequests({
     page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
   });
   const [selectedRequest, setSelectedRequest] = useState<CertificateRequest | null>(null);

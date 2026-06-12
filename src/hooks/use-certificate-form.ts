@@ -237,45 +237,42 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
     }));
   }, [form.terrainTypeId, mode, selectedTerrainType]);
 
-  useEffect(() => {
-    if (form.measurementModeUsed !== "RECTANGULAR_AUTO") {
-      return;
-    }
-
-    const width = parseInputNumber(form.width);
-    const length = parseInputNumber(form.length);
-    const additionalWidth = form.additionalMeasureEnabled ? parseInputNumber(form.additionalWidth) : null;
-    const additionalLength = form.additionalMeasureEnabled ? parseInputNumber(form.additionalLength) : null;
-
-    let total = 0;
-    let hasAnyMeasure = false;
-
-    if (width != null && length != null) {
-      total += width * length;
-      hasAnyMeasure = true;
-    }
-
-    if (additionalWidth != null && additionalLength != null) {
-      total += additionalWidth * additionalLength;
-      hasAnyMeasure = true;
-    }
-
-    const nextTotalArea = hasAnyMeasure ? total.toFixed(2) : "";
-    if (form.totalArea !== nextTotalArea) {
-      setForm((current) => ({ ...current, totalArea: nextTotalArea }));
-    }
-  }, [
-    form.measurementModeUsed,
-    form.width,
-    form.length,
-    form.additionalMeasureEnabled,
-    form.additionalWidth,
-    form.additionalLength,
-    form.totalArea,
-  ]);
-
   function updateField<Key extends keyof CertificateFormState>(field: Key, value: CertificateFormState[Key]) {
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => {
+      const next = { ...current, [field]: value };
+
+      if (
+        next.measurementModeUsed !== "RECTANGULAR_AUTO" ||
+        (field !== "measurementModeUsed" &&
+          field !== "width" &&
+          field !== "length" &&
+          field !== "additionalMeasureEnabled" &&
+          field !== "additionalWidth" &&
+          field !== "additionalLength")
+      ) {
+        return next;
+      }
+
+      const width = parseInputNumber(next.width);
+      const length = parseInputNumber(next.length);
+      const additionalWidth = next.additionalMeasureEnabled ? parseInputNumber(next.additionalWidth) : null;
+      const additionalLength = next.additionalMeasureEnabled ? parseInputNumber(next.additionalLength) : null;
+
+      let total = 0;
+      let hasAnyMeasure = false;
+
+      if (width != null && length != null) {
+        total += width * length;
+        hasAnyMeasure = true;
+      }
+
+      if (additionalWidth != null && additionalLength != null) {
+        total += additionalWidth * additionalLength;
+        hasAnyMeasure = true;
+      }
+
+      return { ...next, totalArea: hasAnyMeasure ? total.toFixed(2) : "" };
+    });
   }
 
   function updateOwnerField<Key extends keyof OwnerFormState>(index: number, field: Key, value: OwnerFormState[Key]) {
