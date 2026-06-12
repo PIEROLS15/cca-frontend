@@ -13,12 +13,22 @@ import { Button } from "@/components/ui/button";
 import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useAssemblyRecordRequests } from "@/hooks/use-assembly-record-requests";
 import { AssemblyRecordRequestsService } from "@/services/assembly-record-requests.service";
-import { formatDateTime } from "@/lib/utils";
 import type { AssemblyRecordRequest } from "@/types/assembly-record-request";
+
+function formatDateOnly(value: string | null) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString("es-PE", { timeZone: "UTC" });
+}
+
+function isComunero(value: string) {
+  return String(value || "").trim().toLowerCase() === "comunero";
+}
 
 function SolicitudesActaContent() {
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
-  const { requests, loading, submitting, deleteRequest, page, setPage, limit, setLimit, search, setSearch, total, totalPages } = useAssemblyRecordRequests({
+  const { requests, loading, submitting, deleteRequest, page, setPage, limit, setLimit, search, setSearch, total } = useAssemblyRecordRequests({
     page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
   });
   const [selectedRequest, setSelectedRequest] = useState<AssemblyRecordRequest | null>(null);
@@ -29,19 +39,9 @@ function SolicitudesActaContent() {
 
   const columns: DataTableColumn<AssemblyRecordRequest>[] = [
     {
-      key: "code",
-      header: "Código",
-      render: (r) => <span className="font-mono text-xs">{r.code}</span>,
-    },
-    {
-      key: "certificate",
-      header: "Certificado",
+      key: "certificateNumber",
+      header: "Código Certificado",
       render: (r) => <span className="font-mono text-xs">{r.certificate.certificateNumber}</span>,
-    },
-    {
-      key: "client",
-      header: "Cliente",
-      render: (r) => <span className="font-medium text-xs">{r.client.fullName}</span>,
     },
     {
       key: "description",
@@ -49,13 +49,29 @@ function SolicitudesActaContent() {
       render: (r) => <span className="text-xs text-muted-foreground truncate max-w-48 block">{r.description || "—"}</span>,
     },
     {
-      key: "createdAt",
-      header: "Fecha",
-      render: (r) => (
-        <div className="text-xs text-muted-foreground leading-tight">
-          <div>{formatDateTime(r.createdAt)}</div>
-        </div>
-      ),
+      key: "typeUser",
+      header: "Comunero",
+      render: (r) => <span className="text-xs">{isComunero(r.typeUser) ? "Sí" : "No"}</span>,
+    },
+    {
+      key: "buyerFullName",
+      header: "Comprador",
+      render: (r) => <span className="font-medium text-xs">{r.buyerFullName || r.client.fullName || "—"}</span>,
+    },
+    {
+      key: "sectorLocation",
+      header: "Ubicacion",
+      render: (r) => <span className="text-xs text-muted-foreground">{r.sectorLocation || "—"}</span>,
+    },
+    {
+      key: "terrainType",
+      header: "Tipo de Terreno",
+      render: (r) => <span className="text-xs text-muted-foreground">{r.terrainType || "—"}</span>,
+    },
+    {
+      key: "awardDate",
+      header: "Fecha de Adjudicación",
+      render: (r) => <span className="text-xs text-muted-foreground">{formatDateOnly(r.awardDate)}</span>,
     },
     {
       key: "actions",
@@ -128,7 +144,7 @@ function SolicitudesActaContent() {
             setSearch("");
             setPage(1);
           }}
-          placeholder="Buscar por código, certificado, cliente o descripción..."
+          placeholder="Buscar por código, certificado, comprador, ubicación o descripción..."
         />
 
         <DataTable
