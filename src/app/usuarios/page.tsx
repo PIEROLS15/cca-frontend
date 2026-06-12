@@ -15,9 +15,12 @@ import { UserFormDialog } from "@/components/usuarios/UserFormDialog";
 import { StatusToggleDialog } from "@/components/usuarios/StatusToggleDialog";
 import { UserRoleBadge } from "@/components/usuarios/UserRoleBadge";
 import { UserActiveBadge } from "@/components/usuarios/UserActiveBadge";
+import { useSession } from "@/context/session-context";
+import { canManageUser, filterAssignableRoles } from "@/lib/access-control";
 import type { User } from "@/types/user";
 
 function UsuariosContent() {
+  const { user: currentUser } = useSession();
   const { readParam, readNumParam, readBoolParam, syncToUrl } = usePaginationSync();
   const { users, roles, loading, submitting, toggleUserStatus, createUser, updateUser, page, setPage, limit, setLimit, search, setSearch, roleId, setRoleId, isActive, setIsActive, total } = useUsers({
     page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
@@ -30,6 +33,7 @@ function UsuariosContent() {
   const [formDlg, setFormDlg] = useState<{ mode: "create" | "edit"; user: User | null } | null>(null);
   const [toggleDlg, setToggleDlg] = useState<User | null>(null);
 
+  const assignableRoles = useMemo(() => filterAssignableRoles(currentUser, roles), [roles, currentUser]);
   const roleOptions = useMemo(
     () => roles.map((r) => ({ label: r.name, value: r.id })),
     [roles],
@@ -65,16 +69,20 @@ function UsuariosContent() {
       key: "actions",
       header: "",
       className: "text-right w-28",
-      render: (u) => (
-        <div className="flex items-center gap-1 justify-end">
+      render: (u) => {
+        const canEdit = canManageUser(currentUser, u);
+
+        return (
+          <div className="flex items-center gap-1 justify-end">
           <Button
             size="icon"
             variant="ghost"
             className={`h-8 w-8 ${
               u.isActive ? "text-destructive hover:text-destructive" : "text-success hover:text-success"
             }`}
-            onClick={() => setToggleDlg(u)}
-            title={u.isActive ? "Desactivar" : "Activar"}
+            onClick={() => canEdit && setToggleDlg(u)}
+            title={canEdit ? (u.isActive ? "Desactivar" : "Activar") : "Sin permisos"}
+            disabled={!canEdit}
           >
             {u.isActive ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
           </Button>
@@ -82,13 +90,15 @@ function UsuariosContent() {
             size="icon"
             variant="ghost"
             className="h-8 w-8 text-warning hover:text-warning"
-            onClick={() => setFormDlg({ mode: "edit", user: u })}
-            title="Editar"
+            onClick={() => canEdit && setFormDlg({ mode: "edit", user: u })}
+            title={canEdit ? "Editar" : "Sin permisos"}
+            disabled={!canEdit}
           >
             <Pencil className="h-4 w-4" />
           </Button>
-        </div>
-      ),
+          </div>
+        );
+      },
     },
   ];
 
@@ -143,9 +153,11 @@ function UsuariosContent() {
         title="Usuarios"
         description="Gestión de cuentas y accesos al sistema."
         actions={
-          <Button className="gap-1.5" onClick={() => setFormDlg({ mode: "create", user: null })}>
-            <Plus className="h-4 w-4" /> Agregar usuario
-          </Button>
+          assignableRoles.length > 0 ? (
+            <Button className="gap-1.5" onClick={() => setFormDlg({ mode: "create", user: null })}>
+              <Plus className="h-4 w-4" /> Agregar usuario
+            </Button>
+          ) : null
         }
       >
         <SearchFilters
@@ -210,7 +222,7 @@ function UsuariosContent() {
           open={formDlg !== null}
           mode={formDlg?.mode ?? "create"}
           user={formDlg?.user ?? null}
-          roles={roles}
+          roles={assignableRoles}
           submitting={submitting}
           onClose={() => setFormDlg(null)}
           onSubmit={handleFormSubmit}

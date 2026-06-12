@@ -1,6 +1,7 @@
 export interface Role {
   id: number;
   name: string;
+  group: number;
   description: string | null;
   permissions: { id: number; key: string; description: string | null }[];
   createdAt: string;
