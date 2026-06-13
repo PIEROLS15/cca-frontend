@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Download, Eye, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -87,6 +87,8 @@ function CertificatesContent() {
   const [sectors, setSectors] = useState<Sector[]>([]);
   const [downloadingReport, setDownloadingReport] = useState(false);
   const [catalogsLoaded, setCatalogsLoaded] = useState(false);
+  const hydratedSectorParamRef = useRef<string | null>(null);
+  const hydratedCreatedByParamRef = useRef<string | null>(null);
 
   useEffect(() => {
     void Promise.all([
@@ -103,19 +105,43 @@ function CertificatesContent() {
 
   useEffect(() => {
     if (legacySectorId || !sectorParam || sectors.length === 0) return;
+    if (hydratedSectorParamRef.current === sectorParam) return;
+
     const matchedSector = sectors.find((sector) => normalizeFilterValue(sector.name) === normalizeFilterValue(sectorParam));
-    if (matchedSector && sectorId !== matchedSector.id) {
-      setSectorId(matchedSector.id);
+    if (matchedSector) {
+      hydratedSectorParamRef.current = sectorParam;
+
+      if (sectorId !== matchedSector.id) {
+        setSectorId(matchedSector.id);
+      }
     }
   }, [legacySectorId, sectorParam, sectors, sectorId, setSectorId]);
 
   useEffect(() => {
+    if (!sectorParam) {
+      hydratedSectorParamRef.current = null;
+    }
+  }, [sectorParam]);
+
+  useEffect(() => {
     if (legacyCreatedByRoleId || !createdByParam || roles.length === 0) return;
+    if (hydratedCreatedByParamRef.current === createdByParam) return;
+
     const matchedRole = roles.find((role) => normalizeFilterValue(role.name) === normalizeFilterValue(createdByParam));
-    if (matchedRole && createdByRoleId !== matchedRole.id) {
-      setCreatedByRoleId(matchedRole.id);
+    if (matchedRole) {
+      hydratedCreatedByParamRef.current = createdByParam;
+
+      if (createdByRoleId !== matchedRole.id) {
+        setCreatedByRoleId(matchedRole.id);
+      }
     }
   }, [legacyCreatedByRoleId, createdByParam, roles, createdByRoleId, setCreatedByRoleId]);
+
+  useEffect(() => {
+    if (!createdByParam) {
+      hydratedCreatedByParamRef.current = null;
+    }
+  }, [createdByParam]);
 
   useEffect(() => {
     if (!catalogsLoaded) return;
@@ -332,6 +358,8 @@ function CertificatesContent() {
               lote: undefined,
               sector: undefined,
               createdBy: undefined,
+              sectorId: undefined,
+              createdByRoleId: undefined,
             });
           }}
           placeholder="Código o nombre..."
