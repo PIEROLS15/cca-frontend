@@ -22,4 +22,10 @@ export const SectorsService = {
       body: JSON.stringify({ name }),
     });
   },
+
+  remove(id: number) {
+    return apiFetch<void>(`/api/sectors/${id}`, {
+      method: "DELETE",
+    });
+  },
 };

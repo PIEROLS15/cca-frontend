@@ -90,6 +90,22 @@ export function useSectors(initial?: { page?: number; limit?: number; search?: s
     }
   }
 
+  async function deleteSector(sector: Sector) {
+    setSubmitting(true);
+
+    try {
+      await SectorsService.remove(sector.id);
+      await loadSectors();
+      toast.success(`Sector ${sector.name} eliminado`);
+      return true;
+    } catch (error) {
+      toast.error(getErrorMessage(error, "No se pudo eliminar el sector"));
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return {
     sectors,
     loading,
@@ -104,5 +120,6 @@ export function useSectors(initial?: { page?: number; limit?: number; search?: s
     totalPages,
     createSector,
     updateSector,
+    deleteSector,
   };
 }
