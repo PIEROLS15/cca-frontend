@@ -1,25 +1,24 @@
-import { FileCheck, Users, Building2 } from "lucide-react";
-import type { ReactNode } from "react";
+export type FeatureIconKey = "file-check" | "users" | "building-2";
 
-interface Feature {
-  icon: ReactNode;
+export interface FeatureData {
+  icon: FeatureIconKey;
   title: string;
   description: string;
 }
 
-export const featuresData: Feature[] = [
+export const featuresData: FeatureData[] = [
   {
-    icon: <FileCheck className="h-5 w-5 text-primary" />,
+    icon: "file-check",
     title: "Certificados digitales",
     description: "Emisión y seguimiento de certificados en línea",
   },
   {
-    icon: <Users className="h-5 w-5 text-emerald-500" />,
+    icon: "users",
     title: "Gestión de comuneros",
     description: "Padrón actualizado con toda la información",
   },
   {
-    icon: <Building2 className="h-5 w-5 text-amber-500" />,
+    icon: "building-2",
     title: "Sectores y predios",
     description: "Administración territorial eficiente",
   },
