@@ -12,6 +12,7 @@ import { NameFormDialog } from "@/components/ui/NameFormDialog";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { SearchFilters } from "@/components/ui/SearchFilters";
 import { Button } from "@/components/ui/button";
+import { useSession } from "@/context/session-context";
 import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useSectors } from "@/hooks/use-sectors";
 import type { Sector } from "@/types/sector";
@@ -19,10 +20,12 @@ import type { Sector } from "@/types/sector";
 type DialogMode = "create" | "edit" | "delete" | null;
 
 function SectoresContent() {
+  const { user: currentUser } = useSession();
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
   const { sectors, loading, submitting, createSector, updateSector, deleteSector, page, setPage, limit, setLimit, search, setSearch, total } = useSectors({
     page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
   });
+  const canDeleteCatalogItems = currentUser?.role?.group === 1 || currentUser?.role?.group === 2;
 
   useEffect(() => {
     syncToUrl({ page: page > 1 ? page : undefined, limit: limit !== 5 ? limit : undefined, search });
@@ -60,16 +63,18 @@ function SectoresContent() {
             <Pencil className="h-4 w-4" />
             <span className="sr-only">Editar {sector.name}</span>
           </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8 text-destructive hover:text-destructive"
-            onClick={() => openDeleteDialog(sector)}
-          >
-            <Trash2 className="h-4 w-4" />
-            <span className="sr-only">Eliminar {sector.name}</span>
-          </Button>
+          {canDeleteCatalogItems && (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-destructive hover:text-destructive"
+              onClick={() => openDeleteDialog(sector)}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="sr-only">Eliminar {sector.name}</span>
+            </Button>
+          )}
         </div>
       ),
     },
