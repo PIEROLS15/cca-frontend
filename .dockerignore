@@ -2,3 +2,11 @@ node_modules
 .git
 .next
 .env
+.github
+deploy
+README.md
+*.md
+coverage
+.vercel
+out
+*.tsbuildinfo

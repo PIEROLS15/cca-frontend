@@ -170,6 +170,35 @@ docker compose up -d --build frontend
 docker compose down
 ```
 
+### Despliegue en VPS
+
+Para produccion usamos release por carpeta y rollback seguro.
+
+Estructura esperada:
+
+```bash
+/opt/app/frontend/current
+/opt/app/frontend/releases/<sha>
+/opt/app/frontend/shared/.env
+```
+
+Antes del primer deploy crea el archivo `/opt/app/frontend/shared/.env` con la URL publica del backend:
+
+```bash
+NEXT_PUBLIC_API_URL=https://api.comunidadcampesina-asia.com
+FRONTEND_PORT=9000
+```
+
+El workflow `deploy-frontend.yml` sube un release nuevo, valida `/api/health` y solo despues promueve el release.
+Recuerda que `FRONTEND_PORT` define el puerto expuesto en el host, mientras que el frontend dentro del contenedor escucha siempre en `9000`.
+Para exponerlo al public usa Caddy con `comunidadcampesina-asia.com` apuntando a `127.0.0.1:9000`.
+
+```caddy
+comunidadcampesina-asia.com {
+  reverse_proxy 127.0.0.1:9000
+}
+```
+
 ---
 
 ## Scripts disponibles
