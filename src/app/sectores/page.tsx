@@ -1,12 +1,13 @@
 "use client";
 
 import { Suspense, useEffect, useState, type FormEvent } from "react";
-import { Building2, Pencil, Plus } from "lucide-react";
+import { Building2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { DeleteConfirmDialog } from "@/components/ui/DeleteConfirmDialog";
 import { NameFormDialog } from "@/components/ui/NameFormDialog";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { SearchFilters } from "@/components/ui/SearchFilters";
@@ -15,11 +16,11 @@ import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useSectors } from "@/hooks/use-sectors";
 import type { Sector } from "@/types/sector";
 
-type DialogMode = "create" | "edit" | null;
+type DialogMode = "create" | "edit" | "delete" | null;
 
 function SectoresContent() {
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
-  const { sectors, loading, submitting, createSector, updateSector, page, setPage, limit, setLimit, search, setSearch, total } = useSectors({
+  const { sectors, loading, submitting, createSector, updateSector, deleteSector, page, setPage, limit, setLimit, search, setSearch, total } = useSectors({
     page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
   });
 
@@ -59,6 +60,16 @@ function SectoresContent() {
             <Pencil className="h-4 w-4" />
             <span className="sr-only">Editar {sector.name}</span>
           </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 text-destructive hover:text-destructive"
+            onClick={() => openDeleteDialog(sector)}
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="sr-only">Eliminar {sector.name}</span>
+          </Button>
         </div>
       ),
     },
@@ -82,6 +93,11 @@ function SectoresContent() {
     setName(sector.name);
   }
 
+  function openDeleteDialog(sector: Sector) {
+    setDialogMode("delete");
+    setSelectedSector(sector);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -95,6 +111,18 @@ function SectoresContent() {
     const success = dialogMode === "edit" && selectedSector
       ? await updateSector(selectedSector.id, normalizedName)
       : await createSector(normalizedName);
+
+    if (success) {
+      closeDialog();
+    }
+  }
+
+  async function handleDelete() {
+    if (!selectedSector) {
+      return;
+    }
+
+    const success = await deleteSector(selectedSector);
 
     if (success) {
       closeDialog();
@@ -157,6 +185,16 @@ function SectoresContent() {
           onValueChange={setName}
           onClose={closeDialog}
           onSubmit={handleSubmit}
+        />
+
+        <DeleteConfirmDialog
+          open={dialogMode === "delete"}
+          entityLabel="sector"
+          itemName={selectedSector?.name}
+          previewEndpoint={selectedSector ? `/api/sectors/${selectedSector.id}/delete-preview` : undefined}
+          submitting={submitting}
+          onClose={closeDialog}
+          onConfirm={handleDelete}
         />
 
       </PageContainer>

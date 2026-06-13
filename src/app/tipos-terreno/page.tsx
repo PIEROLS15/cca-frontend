@@ -1,12 +1,13 @@
 "use client";
 
 import { Suspense, useEffect, useState, type FormEvent } from "react";
-import { Map, Pencil, Plus } from "lucide-react";
+import { Map, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { DeleteConfirmDialog } from "@/components/ui/DeleteConfirmDialog";
 import { NameFormDialog } from "@/components/ui/NameFormDialog";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { SearchFilters } from "@/components/ui/SearchFilters";
@@ -15,7 +16,7 @@ import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useTerrainTypes } from "@/hooks/use-terrain-types";
 import type { TerrainType } from "@/types/terrain-type";
 
-type DialogMode = "create" | "edit" | null;
+type DialogMode = "create" | "edit" | "delete" | null;
 
 function TiposTerrenoContent() {
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
@@ -25,6 +26,7 @@ function TiposTerrenoContent() {
     submitting,
     createTerrainType,
     updateTerrainType,
+    deleteTerrainType,
     page,
     setPage,
     limit,
@@ -72,6 +74,16 @@ function TiposTerrenoContent() {
             <Pencil className="h-4 w-4" />
             <span className="sr-only">Editar {terrainType.name}</span>
           </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 text-destructive hover:text-destructive"
+            onClick={() => openDeleteDialog(terrainType)}
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="sr-only">Eliminar {terrainType.name}</span>
+          </Button>
         </div>
       ),
     },
@@ -95,6 +107,11 @@ function TiposTerrenoContent() {
     setName(terrainType.name);
   }
 
+  function openDeleteDialog(terrainType: TerrainType) {
+    setDialogMode("delete");
+    setSelectedTerrainType(terrainType);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -108,6 +125,18 @@ function TiposTerrenoContent() {
     const success = dialogMode === "edit" && selectedTerrainType
       ? await updateTerrainType(selectedTerrainType.id, normalizedName)
       : await createTerrainType(normalizedName);
+
+    if (success) {
+      closeDialog();
+    }
+  }
+
+  async function handleDelete() {
+    if (!selectedTerrainType) {
+      return;
+    }
+
+    const success = await deleteTerrainType(selectedTerrainType);
 
     if (success) {
       closeDialog();
@@ -170,6 +199,16 @@ function TiposTerrenoContent() {
           onValueChange={setName}
           onClose={closeDialog}
           onSubmit={handleSubmit}
+        />
+
+        <DeleteConfirmDialog
+          open={dialogMode === "delete"}
+          entityLabel="tipo de terreno"
+          itemName={selectedTerrainType?.name}
+          previewEndpoint={selectedTerrainType ? `/api/terrain-types/${selectedTerrainType.id}/delete-preview` : undefined}
+          submitting={submitting}
+          onClose={closeDialog}
+          onConfirm={handleDelete}
         />
 
       </PageContainer>

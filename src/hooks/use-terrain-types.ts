@@ -90,6 +90,22 @@ export function useTerrainTypes(initial?: { page?: number; limit?: number; searc
     }
   }
 
+  async function deleteTerrainType(terrainType: TerrainType) {
+    setSubmitting(true);
+
+    try {
+      await TerrainTypesService.remove(terrainType.id);
+      await loadTerrainTypes();
+      toast.success(`Tipo de terreno ${terrainType.name} eliminado`);
+      return true;
+    } catch (error) {
+      toast.error(getErrorMessage(error, "No se pudo eliminar el tipo de terreno"));
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return {
     terrainTypes,
     loading,
@@ -104,5 +120,6 @@ export function useTerrainTypes(initial?: { page?: number; limit?: number; searc
     totalPages,
     createTerrainType,
     updateTerrainType,
+    deleteTerrainType,
   };
 }
