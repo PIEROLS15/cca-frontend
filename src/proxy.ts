@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const LOGIN_PATH = "/login";
-const PUBLIC_PATHS = [LOGIN_PATH];
+const HOME_PATH = "/";
+const CERTIFICATE_VERIFICATION_PATH = "/verificar-certificado";
+const PUBLIC_PATHS = [HOME_PATH, LOGIN_PATH, CERTIFICATE_VERIFICATION_PATH];
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
@@ -28,14 +30,11 @@ export function proxy(request: NextRequest) {
     (p) => pathname === p || pathname.startsWith(p + "/")
   );
 
-  if (token && !isTokenExpired(token)) {
-    if (isPublicPath) {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
+  if (isPublicPath) {
     return NextResponse.next();
   }
 
-  if (isPublicPath) {
+  if (token && !isTokenExpired(token)) {
     return NextResponse.next();
   }
 
