@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { PublicHome } from "@/components/home/PublicHome";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageLoader } from "@/components/ui/PageLoader";
@@ -9,7 +10,6 @@ import { StatusBreakdownCard } from "@/components/dashboard/StatusBreakdownCard"
 import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
 import { MonthlyActivityCard } from "@/components/dashboard/MonthlyActivityCard";
 import { useSession } from "@/context/session-context";
-import { useRouter } from "next/navigation";
 import { DashboardService } from "@/services/dashboard.service";
 import type { DashboardSummary, StatusBreakdownItem, MonthlyActivityItem, RecentActivityItem } from "@/types/dashboard";
 import type { PresetKey } from "@/lib/dashboard-utils";
@@ -18,7 +18,6 @@ import type { DateRange } from "react-day-picker";
 
 export default function DashboardPage() {
   const { user, isAuthenticated, loading } = useSession();
-  const router = useRouter();
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [statusBreakdown, setStatusBreakdown] = useState<StatusBreakdownItem[]>([]);
@@ -26,10 +25,6 @@ export default function DashboardPage() {
   const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([]);
   const [estadoLoaded, setEstadoLoaded] = useState(false);
   const [actividadLoaded, setActividadLoaded] = useState(false);
-
-  useEffect(() => {
-    if (!loading && !isAuthenticated) router.push("/login");
-  }, [loading, isAuthenticated, router]);
 
   const [estadoPreset, setEstadoPreset] = useState<PresetKey>("12m");
   const [estadoRange, setEstadoRange] = useState<DateRange>(() => presetRange("12m"));
@@ -60,7 +55,9 @@ export default function DashboardPage() {
 
   if (loading) return <PageLoader />;
 
-  if (!isAuthenticated || !user) return null;
+  if (!isAuthenticated || !user) {
+    return <PublicHome />;
+  }
 
   return (
     <AppLayout>
