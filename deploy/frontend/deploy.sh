@@ -86,8 +86,6 @@ if [ -L "$CURRENT_LINK" ] || [ -d "$CURRENT_LINK" ]; then
   fi
 fi
 
-docker network inspect "$NETWORK_NAME" >/dev/null 2>&1 || docker network create "$NETWORK_NAME" >/dev/null
-
 cleanup_staging() {
   stop_frontend "$STAGING_PORT" "$STAGING_PROJECT" >/dev/null 2>&1 || true
 }
