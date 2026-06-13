@@ -1,32 +1,14 @@
 "use client";
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import {
-  Home,
-  FileText,
-  Building2,
-  Map,
-  Users,
-  UserSquare2,
-  FileSignature,
-  ScrollText,
-  LogOut,
-  Moon,
-  Sun,
-  Menu,
-  X,
-  ChevronRight,
-  UserCircle,
-} from "lucide-react";
-import { useSession } from "@/context/session-context";
-import { useTheme } from "@/store/theme";
+import { LogOut, Menu, Moon, Sun, X, ChevronRight, UserCircle } from "lucide-react";
+
+import { useAppLayout } from "@/hooks/use-app-layout";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { canAccessModule, canAccessPath } from "@/lib/access-control";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,57 +18,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const nav = [
-  { to: "/", label: "Inicio", icon: Home, moduleKey: "dashboard" },
-  { to: "/certificados", label: "Certificados", icon: FileText, moduleKey: "certificates" },
-  { to: "/sectores", label: "Sectores", icon: Building2, moduleKey: "sectors" },
-  { to: "/tipos-terreno", label: "Tipos de Terreno", icon: Map, moduleKey: "terrain-types" },
-  { to: "/clientes", label: "Clientes", icon: Users, moduleKey: "clients" },
-  { to: "/comuneros", label: "Comuneros", icon: UserSquare2, moduleKey: "comuneros" },
-  { to: "/solicitudes-certificados", label: "Solicitudes Cert.", icon: FileSignature, moduleKey: "certificate-requests" },
-  { to: "/solicitudes-acta", label: "Solicitudes Acta", icon: ScrollText, moduleKey: "assembly-record-requests" },
-  { to: "/usuarios", label: "Usuarios", icon: UserCircle, moduleKey: "users" },
-];
-
 export function AppLayout({ children }: { children: ReactNode }) {
-  const { user, isAuthenticated, loading, logout } = useSession();
-  const { theme, toggle, apply } = useTheme();
-  const router = useRouter();
-  const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    apply();
-  }, [apply]);
-
-  useEffect(() => {
-    if (!loading && !isAuthenticated) router.push("/login");
-  }, [loading, isAuthenticated, router]);
-
-  useEffect(() => {
-    if (!loading && user && !canAccessPath(user, pathname)) {
-      router.replace("/");
-    }
-  }, [loading, user, pathname, router]);
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
-
-  const current = nav.find((item) => item.to === pathname)?.label ?? nav.find((item) => pathname.startsWith(item.to) && item.to !== "/")?.label ?? "Inicio";
-  const visibleNav = user ? nav.filter((item) => canAccessModule(user, item.moduleKey)) : [];
+  const {
+    user,
+    loading,
+    pathname,
+    theme,
+    toggleTheme,
+    mobileOpen,
+    setMobileOpen,
+    currentLabel,
+    visibleNav,
+    initials,
+    goToProfile,
+    handleLogout,
+  } = useAppLayout();
 
   if (loading || !user) return null;
-  const initials = user.fullName
-    .split(" ")
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("");
-
-  const handleLogout = async () => {
-    await logout();
-    router.push("/login");
-  };
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -122,12 +70,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <nav className="hidden md:flex items-center gap-1.5 text-sm text-muted-foreground">
               <span>Panel</span>
               <ChevronRight className="h-4 w-4" />
-              <span className="text-foreground font-medium">{current}</span>
+              <span className="text-foreground font-medium">{currentLabel}</span>
             </nav>
 
             <div className="flex-1" />
 
-            <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme">
+            <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
 
@@ -151,7 +99,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   <div className="text-xs text-muted-foreground font-normal">{user.email}</div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push("/perfil")}>
+                <DropdownMenuItem onClick={goToProfile}>
                   <UserCircle className="h-4 w-4 mr-2" /> Mi perfil
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout}>

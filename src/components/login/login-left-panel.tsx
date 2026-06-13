@@ -1,6 +1,12 @@
 import Image from "next/image";
-import { Sparkles } from "lucide-react";
-import { featuresData } from "@/lib/features";
+import { Building2, FileCheck, Sparkles, Users } from "lucide-react";
+import { featuresData, type FeatureIconKey } from "@/lib/features";
+
+const FEATURE_ICONS: Record<FeatureIconKey, typeof FileCheck> = {
+  "file-check": FileCheck,
+  users: Users,
+  "building-2": Building2,
+};
 
 export function LoginLeftPanel() {
   return (
@@ -52,7 +58,10 @@ export function LoginLeftPanel() {
             className="flex gap-3 p-3 rounded-xl bg-sidebar-accent/40 border border-sidebar-border"
           >
             <div className="p-2 rounded-lg bg-sidebar-accent/50 shrink-0">
-              {f.icon}
+              {(() => {
+                const Icon = FEATURE_ICONS[f.icon];
+                return <Icon className="h-5 w-5 text-primary" />;
+              })()}
             </div>
             <div>
               <h3 className="font-medium text-sm">{f.title}</h3>
