@@ -1,0 +1,437 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
+import { useSectors } from "@/hooks/use-sectors";
+import { useTerrainTypes } from "@/hooks/use-terrain-types";
+import { CertificateRequestsService } from "@/services/certificate-requests.service";
+import { CertificatesService } from "@/services/certificates.service";
+import { ClientsService } from "@/services/clients.service";
+import type { Certificate, CertificatePayload } from "@/types/certificate";
+import type { TerrainMeasurementMode, TerrainType } from "@/types/terrain-type";
+
+export interface OwnerFormState {
+  id: number | null;
+  fullName: string;
+  documentNumber: string;
+}
+
+export interface CertificateFormState {
+  requestNumber: string;
+  certificateRequestId: number | null;
+  owners: OwnerFormState[];
+  terrainTypeId: string;
+  measurementModeUsed: TerrainMeasurementMode;
+  width: string;
+  length: string;
+  totalArea: string;
+  area: string;
+  perimeter: string;
+  additionalMeasureEnabled: boolean;
+  additionalWidth: string;
+  additionalLength: string;
+  sectorId: string;
+  mz: string;
+  lot: string;
+  north: string;
+  south: string;
+  east: string;
+  west: string;
+}
+
+function createEmptyOwner(): OwnerFormState {
+  return { id: null, fullName: "", documentNumber: "" };
+}
+
+const emptyForm: CertificateFormState = {
+  requestNumber: "",
+  certificateRequestId: null,
+  owners: [createEmptyOwner()],
+  terrainTypeId: "",
+  measurementModeUsed: "RECTANGULAR_AUTO",
+  width: "",
+  length: "",
+  totalArea: "",
+  area: "",
+  perimeter: "",
+  additionalMeasureEnabled: false,
+  additionalWidth: "",
+  additionalLength: "",
+  sectorId: "",
+  mz: "",
+  lot: "",
+  north: "",
+  south: "",
+  east: "",
+  west: "",
+};
+
+function toInputValue(value: number | null | undefined) {
+  return value != null ? String(value) : "";
+}
+
+function parseInputNumber(value: string) {
+  const normalized = value.trim();
+  if (!normalized) return null;
+  const parsed = Number(normalized);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function resolveModeForTerrainType(terrainType: TerrainType | null | undefined): TerrainMeasurementMode {
+  const mode = terrainType?.config?.formMode;
+  if (mode === "AREA_PERIMETER" || mode === "MANUAL_TOTAL_AREA") return mode;
+  return "RECTANGULAR_AUTO";
+}
+
+function mapCertificateToForm(certificate: Certificate): CertificateFormState {
+  const mappedOwners = certificate.owners?.length
+    ? certificate.owners.map((owner) => ({
+        id: owner.id ?? null,
+        fullName: owner.fullName || "",
+        documentNumber: owner.documentNumber || "",
+      }))
+    : [createEmptyOwner()];
+
+  return {
+    requestNumber: certificate.requestNumber || "",
+    certificateRequestId: certificate.certificateRequestId || null,
+    owners: mappedOwners,
+    terrainTypeId: String(certificate.terrain.terrainType?.id ?? ""),
+    measurementModeUsed: certificate.terrain.measurementModeUsed || "RECTANGULAR_AUTO",
+    width: toInputValue(certificate.terrain.width),
+    length: toInputValue(certificate.terrain.length),
+    totalArea: toInputValue(certificate.terrain.totalArea),
+    area: toInputValue(certificate.terrain.area),
+    perimeter: toInputValue(certificate.terrain.perimeter),
+    additionalMeasureEnabled: certificate.terrain.additionalWidth != null || certificate.terrain.additionalLength != null,
+    additionalWidth: toInputValue(certificate.terrain.additionalWidth),
+    additionalLength: toInputValue(certificate.terrain.additionalLength),
+    sectorId: String(certificate.location.sectors?.id ?? ""),
+    mz: certificate.location.mz || "",
+    lot: certificate.location.lot || "",
+    north: certificate.borders.north || "",
+    south: certificate.borders.south || "",
+    east: certificate.borders.east || "",
+    west: certificate.borders.west || "",
+  };
+}
+
+function buildPayload(form: CertificateFormState, owners: { id: number }[]): CertificatePayload {
+  return {
+    owners,
+    requestNumber: form.requestNumber.trim(),
+    certificateRequestId: form.certificateRequestId,
+    terrain: {
+      terrainType: { id: Number(form.terrainTypeId) },
+      measurementModeUsed: form.measurementModeUsed,
+      width: parseInputNumber(form.width),
+      length: parseInputNumber(form.length),
+      totalArea: parseInputNumber(form.totalArea),
+      area: parseInputNumber(form.area),
+      perimeter: parseInputNumber(form.perimeter),
+      additionalWidth: form.additionalMeasureEnabled ? parseInputNumber(form.additionalWidth) : null,
+      additionalLength: form.additionalMeasureEnabled ? parseInputNumber(form.additionalLength) : null,
+    },
+    location: {
+      sectors: { id: Number(form.sectorId) },
+      mz: form.mz || null,
+      lot: form.lot || null,
+    },
+    borders: {
+      north: form.north || null,
+      south: form.south || null,
+      east: form.east || null,
+      west: form.west || null,
+    },
+  };
+}
+
+function isOwnerEmpty(owner: OwnerFormState) {
+  return !owner.id && !owner.fullName.trim() && !owner.documentNumber.trim();
+}
+
+interface UseCertificateFormOptions {
+  mode: "create" | "edit";
+  certificateId?: number;
+}
+
+export function useCertificateForm({ mode, certificateId }: UseCertificateFormOptions) {
+  const router = useRouter();
+  const { terrainTypes } = useTerrainTypes({ page: 1, limit: 100 });
+  const { sectors } = useSectors({ page: 1, limit: 100 });
+  const [form, setForm] = useState<CertificateFormState>(emptyForm);
+  const [loading, setLoading] = useState(mode === "edit");
+  const [submitting, setSubmitting] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const previousTerrainTypeId = useRef<string | null>(null);
+
+  const selectedTerrainType = useMemo(
+    () => terrainTypes.find((terrainType) => String(terrainType.id) === form.terrainTypeId) || null,
+    [terrainTypes, form.terrainTypeId],
+  );
+
+  useEffect(() => {
+    if (mode !== "edit" || !certificateId) {
+      return;
+    }
+
+    const currentCertificateId = certificateId;
+    let cancelled = false;
+
+    async function loadCertificate() {
+      try {
+        const certificate = await CertificatesService.getById(currentCertificateId);
+
+        if (!cancelled) {
+          setForm(mapCertificateToForm(certificate));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : "No se pudo cargar el certificado";
+          toast.error(message);
+          router.push("/certificados");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadCertificate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [certificateId, mode, router]);
+
+  useEffect(() => {
+    if (!selectedTerrainType || !form.terrainTypeId) return;
+
+    const hasPreviousTerrainType = previousTerrainTypeId.current !== null;
+    const terrainTypeChanged = previousTerrainTypeId.current !== form.terrainTypeId;
+
+    if (!terrainTypeChanged) return;
+
+    previousTerrainTypeId.current = form.terrainTypeId;
+
+    if (mode === "edit" && !hasPreviousTerrainType) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      measurementModeUsed: resolveModeForTerrainType(selectedTerrainType),
+      width: "",
+      length: "",
+      totalArea: "",
+      area: "",
+      perimeter: "",
+      additionalMeasureEnabled: false,
+      additionalWidth: "",
+      additionalLength: "",
+      mz: selectedTerrainType.config?.showMzLot === false ? "" : current.mz,
+      lot: selectedTerrainType.config?.showMzLot === false ? "" : current.lot,
+    }));
+  }, [form.terrainTypeId, mode, selectedTerrainType]);
+
+  function updateField<Key extends keyof CertificateFormState>(field: Key, value: CertificateFormState[Key]) {
+    setForm((current) => {
+      const next = { ...current, [field]: value };
+
+      if (
+        next.measurementModeUsed !== "RECTANGULAR_AUTO" ||
+        (field !== "measurementModeUsed" &&
+          field !== "width" &&
+          field !== "length" &&
+          field !== "additionalMeasureEnabled" &&
+          field !== "additionalWidth" &&
+          field !== "additionalLength")
+      ) {
+        return next;
+      }
+
+      const width = parseInputNumber(next.width);
+      const length = parseInputNumber(next.length);
+      const additionalWidth = next.additionalMeasureEnabled ? parseInputNumber(next.additionalWidth) : null;
+      const additionalLength = next.additionalMeasureEnabled ? parseInputNumber(next.additionalLength) : null;
+
+      let total = 0;
+      let hasAnyMeasure = false;
+
+      if (width != null && length != null) {
+        total += width * length;
+        hasAnyMeasure = true;
+      }
+
+      if (additionalWidth != null && additionalLength != null) {
+        total += additionalWidth * additionalLength;
+        hasAnyMeasure = true;
+      }
+
+      return { ...next, totalArea: hasAnyMeasure ? total.toFixed(2) : "" };
+    });
+  }
+
+  function updateOwnerField<Key extends keyof OwnerFormState>(index: number, field: Key, value: OwnerFormState[Key]) {
+    setForm((current) => ({
+      ...current,
+      owners: current.owners.map((owner, ownerIndex) => (ownerIndex === index ? { ...owner, [field]: value } : owner)),
+    }));
+  }
+
+  function addOwner() {
+    setForm((current) => ({
+      ...current,
+      owners: [...current.owners, createEmptyOwner()],
+    }));
+  }
+
+  function removeOwner(index: number) {
+    setForm((current) => {
+      if (current.owners.length <= 1) return current;
+      const nextOwners = current.owners.filter((_, ownerIndex) => ownerIndex !== index);
+      return { ...current, owners: nextOwners.length > 0 ? nextOwners : [createEmptyOwner()] };
+    });
+  }
+
+  async function resolveOwnersForPayload() {
+    const resolved: { id: number }[] = [];
+    const seen = new Set<number>();
+
+    for (const owner of form.owners) {
+      if (isOwnerEmpty(owner)) continue;
+
+      let ownerId = owner.id;
+      if (!ownerId) {
+        const documentNumber = owner.documentNumber.trim();
+        if (!documentNumber) {
+          throw new Error("Cada dueño debe tener DNI");
+        }
+
+        const found = await ClientsService.searchByDocument(documentNumber);
+        ownerId = found.id;
+      }
+
+      if (!seen.has(ownerId)) {
+        seen.add(ownerId);
+        resolved.push({ id: ownerId });
+      }
+    }
+
+    if (resolved.length === 0) {
+      throw new Error("No hay titulares asignados");
+    }
+
+    return resolved;
+  }
+
+  async function searchRequest() {
+    const code = form.requestNumber.trim();
+
+    if (!code) {
+      toast.error("Ingresa un código de solicitud");
+      return;
+    }
+
+    setSearching(true);
+
+    try {
+      const request = await CertificateRequestsService.getById(code);
+      const [client, partnerClient] = await Promise.all([
+        ClientsService.searchByDocument(request.client.documentNumber),
+        request.partnerClient.documentNumber
+          ? ClientsService.searchByDocument(request.partnerClient.documentNumber)
+          : Promise.resolve(null),
+      ]);
+
+      setForm((current) => ({
+        ...current,
+        certificateRequestId: request.id,
+        requestNumber: request.requestNumber,
+        owners: [
+          {
+            id: client.id,
+            fullName: request.client.fullName,
+            documentNumber: request.client.documentNumber,
+          },
+          ...(request.partnerClient.documentNumber
+            ? [{
+                id: partnerClient?.id ?? null,
+                fullName: request.partnerClient.fullName,
+                documentNumber: request.partnerClient.documentNumber,
+              }]
+            : []),
+          ...current.owners.slice(2),
+        ],
+      }));
+
+      toast.success("Datos cargados correctamente");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se encontró la solicitud";
+      toast.error(message);
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!form.terrainTypeId) {
+      toast.error("Selecciona el tipo de terreno");
+      return;
+    }
+
+    if (!form.sectorId) {
+      toast.error("Selecciona el sector");
+      return;
+    }
+
+    let payload;
+    try {
+      const owners = await resolveOwnersForPayload();
+      payload = buildPayload(form, owners);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Complete los datos de los dueños";
+      toast.error(message);
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      if (mode === "edit" && certificateId) {
+        await CertificatesService.update(certificateId, payload);
+        toast.success("Certificado actualizado");
+      } else {
+        await CertificatesService.create(payload);
+        toast.success("Certificado creado");
+      }
+
+      router.push("/certificados");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo guardar el certificado";
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return {
+    form,
+    loading,
+    submitting,
+    searching,
+    terrainTypes,
+    sectors,
+    updateField,
+    updateOwnerField,
+    addOwner,
+    removeOwner,
+    searchRequest,
+    handleSubmit,
+  };
+}
