@@ -20,6 +20,7 @@ import { useCertificates } from "@/hooks/use-certificates";
 import { CertificatesService } from "@/services/certificates.service";
 import { RolesService } from "@/services/roles.service";
 import { SectorsService } from "@/services/sectors.service";
+import { useSession } from "@/context/session-context";
 import { formatDateTime } from "@/lib/utils";
 import type { Certificate, CertificateStatus } from "@/types/certificate";
 import type { Sector } from "@/types/sector";
@@ -58,7 +59,10 @@ function toRoleUrlValue(name: string) {
 }
 
 function CertificatesContent() {
+  const { user } = useSession();
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
+  const canEditCertificates = user?.role.group !== 4;
+  const showRoleFilter = user?.role.group !== 4;
   const sectorParam = readParam("sector");
   const createdByParam = readParam("createdBy");
   const legacySectorId = readNumParam("sectorId", 0) || undefined;
@@ -78,7 +82,7 @@ function CertificatesContent() {
     documento: readParam("documento") ?? "",
     mz: readParam("mz") ?? "", lote: readParam("lote") ?? "",
     sectorId: legacySectorId,
-    createdByRoleId: legacyCreatedByRoleId,
+    createdByRoleId: showRoleFilter ? legacyCreatedByRoleId : undefined,
   });
 
   const [selectedCertificate, setSelectedCertificate] = useState<Certificate | null>(null);
@@ -91,17 +95,44 @@ function CertificatesContent() {
   const hydratedCreatedByParamRef = useRef<string | null>(null);
 
   useEffect(() => {
-    void Promise.all([
-      RolesService.listAll(),
-      SectorsService.list({ page: 1, limit: 100 }),
-    ]).then(([loadedRoles, sectorsResult]) => {
-      setRoles(loadedRoles);
-      setSectors(sectorsResult.data);
-      setCatalogsLoaded(true);
-    }).catch(() => {
-      setCatalogsLoaded(true);
-    });
-  }, []);
+    let cancelled = false;
+
+    async function loadCatalogs() {
+      try {
+        if (showRoleFilter) {
+          const loadedRoles = await RolesService.listAll();
+          if (!cancelled) {
+            setRoles(loadedRoles);
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setRoles([]);
+        }
+      }
+
+      try {
+        const sectorsResult = await SectorsService.list({ page: 1, limit: 100 });
+        if (!cancelled) {
+          setSectors(sectorsResult.data);
+        }
+      } catch {
+        if (!cancelled) {
+          setSectors([]);
+        }
+      }
+
+      if (!cancelled) {
+        setCatalogsLoaded(true);
+      }
+    }
+
+    void loadCatalogs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showRoleFilter]);
 
   useEffect(() => {
     if (legacySectorId || !sectorParam || sectors.length === 0) return;
@@ -249,22 +280,26 @@ function CertificatesContent() {
             <Eye className="h-4 w-4" />
             <span className="sr-only">Ver PDF {cert.certificateNumber}</span>
           </Button>
-          <Button asChild type="button" size="icon" variant="ghost" className="h-8 w-8 text-warning hover:text-warning">
-            <Link href={`/certificados/${cert.id}/editar`}>
-              <Pencil className="h-4 w-4" />
-              <span className="sr-only">Editar {cert.certificateNumber}</span>
-            </Link>
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8 text-destructive hover:text-destructive"
-            onClick={() => setSelectedCertificate(cert)}
-          >
-            <Trash2 className="h-4 w-4" />
-            <span className="sr-only">Eliminar {cert.certificateNumber}</span>
-          </Button>
+          {canEditCertificates && (
+            <>
+              <Button asChild type="button" size="icon" variant="ghost" className="h-8 w-8 text-warning hover:text-warning">
+                <Link href={`/certificados/${cert.id}/editar`}>
+                  <Pencil className="h-4 w-4" />
+                  <span className="sr-only">Editar {cert.certificateNumber}</span>
+                </Link>
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-destructive hover:text-destructive"
+                onClick={() => setSelectedCertificate(cert)}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="sr-only">Eliminar {cert.certificateNumber}</span>
+              </Button>
+            </>
+          )}
         </div>
       ),
     },
@@ -324,14 +359,18 @@ function CertificatesContent() {
         description="Gestión de certificados emitidos a comuneros y terceros."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" variant="outline" className="gap-1.5" onClick={handleDownloadReport} disabled={downloadingReport}>
-              <Download className="h-4 w-4" /> {downloadingReport ? "Descargando..." : "Descargar Certificados"}
-            </Button>
-            <Button asChild className="gap-1.5">
-              <Link href="/certificados/nuevo">
-                <Plus className="h-4 w-4" /> Agregar certificado
-              </Link>
-            </Button>
+            {canEditCertificates && (
+              <Button type="button" variant="outline" className="gap-1.5" onClick={handleDownloadReport} disabled={downloadingReport}>
+                <Download className="h-4 w-4" /> {downloadingReport ? "Descargando..." : "Descargar Certificados"}
+              </Button>
+            )}
+            {canEditCertificates && (
+              <Button asChild className="gap-1.5">
+                <Link href="/certificados/nuevo">
+                  <Plus className="h-4 w-4" /> Agregar certificado
+                </Link>
+              </Button>
+            )}
           </div>
         }
       >
@@ -381,20 +420,22 @@ function CertificatesContent() {
               ))}
             </SelectContent>
           </Select>
-          <Select
-            value={createdByRoleId !== undefined ? String(createdByRoleId) : "all"}
-            onValueChange={(v) => { setCreatedByRoleId(v === "all" ? undefined : Number(v)); setPage(1); }}
-          >
-            <SelectTrigger className="lg:w-44">
-              <SelectValue placeholder="Rol creador" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los roles</SelectItem>
-              {roleOptions.map((o) => (
-                <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {showRoleFilter && (
+            <Select
+              value={createdByRoleId !== undefined ? String(createdByRoleId) : "all"}
+              onValueChange={(v) => { setCreatedByRoleId(v === "all" ? undefined : Number(v)); setPage(1); }}
+            >
+              <SelectTrigger className="lg:w-44">
+                <SelectValue placeholder="Rol creador" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los roles</SelectItem>
+                {roleOptions.map((o) => (
+                  <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </SearchFilters>
 
         <DataTable

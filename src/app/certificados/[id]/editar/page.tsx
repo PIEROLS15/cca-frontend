@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { useEffect, use } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
@@ -9,13 +9,32 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { useCertificateForm } from "@/hooks/use-certificate-form";
+import { useRouter } from "next/navigation";
+import { useSession } from "@/context/session-context";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
 export default function EditCertificatePage({ params }: PageProps) {
+  const router = useRouter();
   const { id } = use(params);
+  const { user, loading: sessionLoading } = useSession();
+
+  useEffect(() => {
+    if (!sessionLoading && user?.role.group === 4) {
+      router.replace("/certificados");
+    }
+  }, [router, sessionLoading, user]);
+
+  if (sessionLoading || user?.role.group === 4) {
+    return null;
+  }
+
+  return <EditCertificateFormPage certificateId={Number(id)} />;
+}
+
+function EditCertificateFormPage({ certificateId }: { certificateId: number }) {
   const {
     form,
     loading,
@@ -29,7 +48,7 @@ export default function EditCertificatePage({ params }: PageProps) {
     removeOwner,
     searchRequest,
     handleSubmit,
-  } = useCertificateForm({ mode: "edit", certificateId: Number(id) });
+  } = useCertificateForm({ mode: "edit", certificateId });
 
   return (
     <AppLayout>

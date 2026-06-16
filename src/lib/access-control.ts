@@ -18,7 +18,7 @@ const MODULE_ACCESS_BY_GROUP: Record<number, string[]> = {
   1: ["dashboard", "roles", "users", "sectors", "terrain-types", "clients", "comuneros", "certificate-requests", "certificates", "assembly-record-requests", "reports"],
   2: ["dashboard", "roles", "users", "sectors", "terrain-types", "clients", "comuneros", "certificate-requests", "certificates", "assembly-record-requests", "reports"],
   3: ["dashboard", "roles", "sectors", "terrain-types", "clients", "comuneros", "certificate-requests", "certificates", "assembly-record-requests", "reports"],
-  4: ["dashboard", "clients", "certificate-requests", "assembly-record-requests"],
+  4: ["dashboard", "clients", "certificate-requests", "certificates", "assembly-record-requests"],
 };
 
 const ROUTE_MODULES = [
