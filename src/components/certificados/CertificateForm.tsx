@@ -94,7 +94,7 @@ export function CertificateForm({
             </Button>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Al buscar el código se completarán automáticamente los datos de los titulares.
+            Opcional. Si lo ingresas, se completarán automáticamente los datos de los titulares.
           </p>
         </div>
 
@@ -110,7 +110,7 @@ export function CertificateForm({
 
           <div className="space-y-3">
             {form.owners.map((owner, index) => (
-              <div key={`${index}-${owner.documentNumber || "empty"}`} className="rounded-md border p-3 space-y-3">
+              <div key={owner.uid} className="rounded-md border p-3 space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Dueño {index + 1}
@@ -140,9 +140,12 @@ export function CertificateForm({
                     <Label className="text-xs">DNI</Label>
                     <Input
                       value={owner.documentNumber}
-                      onChange={(event) => onOwnerChange(index, "documentNumber", event.target.value)}
+                      onChange={(event) => onOwnerChange(index, "documentNumber", event.target.value.replace(/\D/g, ""))}
                       placeholder="Ingrese"
                       className="font-mono"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={8}
                     />
                   </div>
                 </div>
