@@ -4,12 +4,14 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { ClientsService } from "@/services/clients.service";
 import { useSession } from "@/context/session-context";
 import { useSectors } from "@/hooks/use-sectors";
 import { useTerrainTypes } from "@/hooks/use-terrain-types";
 import { CertificateRequestsService } from "@/services/certificate-requests.service";
 import { CertificatesService } from "@/services/certificates.service";
 import type { Certificate, CertificatePayload } from "@/types/certificate";
+import type { PersonaData } from "@/types/client";
 import type { TerrainMeasurementMode, TerrainType } from "@/types/terrain-type";
 
 export interface OwnerFormState {
@@ -164,9 +166,19 @@ function isOwnerEmpty(owner: OwnerFormState) {
   return !owner.id && !owner.fullName.trim() && !owner.documentNumber.trim();
 }
 
+function normalizeDocumentNumber(value: string) {
+  return value.replace(/\D/g, "").trim();
+}
+
 interface UseCertificateFormOptions {
   mode: "create" | "edit";
   certificateId?: number;
+}
+
+export interface OwnerSearchState {
+  open: boolean;
+  ownerIndex: number | null;
+  result: PersonaData | null;
 }
 
 export function useCertificateForm({ mode, certificateId }: UseCertificateFormOptions) {
@@ -178,6 +190,8 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
   const [loading, setLoading] = useState(mode === "edit");
   const [submitting, setSubmitting] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [searchingOwnerIndex, setSearchingOwnerIndex] = useState<number | null>(null);
+  const [ownerSearch, setOwnerSearch] = useState<OwnerSearchState>({ open: false, ownerIndex: null, result: null });
   const previousTerrainTypeId = useRef<string | null>(null);
 
   const selectedTerrainType = useMemo(
@@ -310,6 +324,69 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
     });
   }
 
+  async function resolveOwnersWithReniec(owners: OwnerFormState[]) {
+    return Promise.all(owners.map(async (owner) => {
+      const documentNumber = normalizeDocumentNumber(owner.documentNumber);
+
+      if (!documentNumber) {
+        throw new Error("Cada dueño debe tener DNI");
+      }
+
+      const reniec = await ClientsService.searchReniec(documentNumber);
+
+      return {
+        ...owner,
+        fullName: reniec.fullName.trim(),
+        documentNumber: normalizeDocumentNumber(reniec.documentNumber || documentNumber),
+      };
+    }));
+  }
+
+  async function searchOwnerByDocument(index: number) {
+    const owner = form.owners[index];
+    const documentNumber = owner?.documentNumber.trim();
+
+    if (!documentNumber) {
+      toast.error("Ingresa el DNI del dueño");
+      return;
+    }
+
+    setSearchingOwnerIndex(index);
+
+    try {
+      const result = await ClientsService.searchReniec(documentNumber);
+      setOwnerSearch({ open: true, ownerIndex: index, result });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se encontró el cliente";
+      toast.error(message);
+    } finally {
+      setSearchingOwnerIndex(null);
+    }
+  }
+
+  function closeOwnerSearch() {
+    setOwnerSearch({ open: false, ownerIndex: null, result: null });
+  }
+
+  function acceptOwnerSearch() {
+    const { ownerIndex, result } = ownerSearch;
+
+    if (ownerIndex == null || !result) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      owners: current.owners.map((owner, index) => (
+        index === ownerIndex
+          ? { ...owner, fullName: result.fullName, documentNumber: result.documentNumber }
+          : owner
+      )),
+    }));
+
+    closeOwnerSearch();
+  }
+
   async function searchRequest() {
     const code = form.requestNumber.trim();
 
@@ -377,16 +454,13 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
       }
 
       for (const owner of owners) {
-        if (!owner.documentNumber.trim()) {
+        if (!normalizeDocumentNumber(owner.documentNumber)) {
           throw new Error("Cada dueño debe tener DNI");
-        }
-
-        if (!owner.fullName.trim()) {
-          throw new Error("Cada dueño debe tener nombres y apellidos");
         }
       }
 
-      payload = buildPayload({ ...form, owners });
+      const ownersWithReniec = await resolveOwnersWithReniec(owners);
+      payload = buildPayload({ ...form, owners: ownersWithReniec });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Complete los datos de los dueños";
       toast.error(message);
@@ -394,6 +468,7 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
     }
 
     setSubmitting(true);
+    const previewTab = mode === "create" && typeof window !== "undefined" ? window.open("", "_blank") : null;
 
     try {
       if (mode === "edit" && certificateId) {
@@ -402,11 +477,23 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
       } else {
         const created = await CertificatesService.create(payload);
         updateUserData({ lastCertificate: created.certificateNumber });
+
+        if (previewTab && !previewTab.closed) {
+          previewTab.location.href = CertificatesService.getPdfUrl(created.id, created.certificateNumber);
+          previewTab.focus();
+        } else {
+          window.open(CertificatesService.getPdfUrl(created.id, created.certificateNumber), "_blank");
+        }
+
         toast.success("Certificado creado");
       }
 
       router.push("/certificados");
     } catch (error) {
+      if (previewTab && !previewTab.closed) {
+        previewTab.close();
+      }
+
       const message = error instanceof Error ? error.message : "No se pudo guardar el certificado";
       toast.error(message);
     } finally {
@@ -419,12 +506,17 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
     loading,
     submitting,
     searching,
+    searchingOwnerIndex,
+    ownerSearch,
     terrainTypes,
     sectors,
     updateField,
     updateOwnerField,
     addOwner,
     removeOwner,
+    searchOwnerByDocument,
+    closeOwnerSearch,
+    acceptOwnerSearch,
     searchRequest,
     handleSubmit,
   };
