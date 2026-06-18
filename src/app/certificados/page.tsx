@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Download, Eye, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -66,6 +67,7 @@ function formatSequence(value: number | string | null | undefined) {
 }
 
 function CertificatesContent() {
+  const router = useRouter();
   const { user } = useSession();
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
   const canEditCertificates = user?.role.group !== 4;
@@ -292,7 +294,7 @@ function CertificatesContent() {
             variant="ghost"
             className="h-8 w-8 text-info hover:text-info"
             title="Ver PDF"
-            onClick={() => window.open(CertificatesService.getPdfUrl(cert.id, cert.certificateNumber), "_blank", "noopener,noreferrer")}
+            onClick={() => router.push(`/certificados/${cert.id}/pdf`)}
           >
             <Eye className="h-4 w-4" />
             <span className="sr-only">Ver PDF {cert.certificateNumber}</span>

@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -12,7 +13,6 @@ import { SearchFilters } from "@/components/ui/SearchFilters";
 import { Button } from "@/components/ui/button";
 import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useCertificateRequests } from "@/hooks/use-certificate-requests";
-import { CertificateRequestsService } from "@/services/certificate-requests.service";
 import { formatDateTime } from "@/lib/utils";
 import type { CertificateRequest } from "@/types/certificate-request";
 
@@ -32,6 +32,7 @@ function formatCertificateTypes(types: CertificateRequest["certificateTypes"]) {
 }
 
 function CertificateRequestsContent() {
+  const router = useRouter();
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
   const { requests, loading, submitting, deleteRequest, page, setPage, limit, setLimit, search, setSearch, total } = useCertificateRequests({
     page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
@@ -89,7 +90,7 @@ function CertificateRequestsContent() {
             size="icon"
             variant="ghost"
             className="h-8 w-8 text-info hover:text-info"
-            onClick={() => window.open(CertificateRequestsService.getPdfUrl(request.id, request.requestNumber), "_blank", "noopener,noreferrer")}
+            onClick={() => router.push(`/solicitudes-certificados/${request.id}/pdf`)}
           >
             <Eye className="h-4 w-4" />
             <span className="sr-only">Ver PDF {request.requestNumber}</span>
