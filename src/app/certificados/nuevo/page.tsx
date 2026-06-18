@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
@@ -8,8 +9,27 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { useCertificateForm } from "@/hooks/use-certificate-form";
+import { useSession } from "@/context/session-context";
+import { useRouter } from "next/navigation";
 
 export default function NewCertificatePage() {
+  const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
+
+  useEffect(() => {
+    if (!sessionLoading && user?.role.group === 4) {
+      router.replace("/certificados");
+    }
+  }, [router, sessionLoading, user]);
+
+  if (sessionLoading || user?.role.group === 4) {
+    return null;
+  }
+
+  return <NewCertificateFormPage />;
+}
+
+function NewCertificateFormPage() {
   const {
     form,
     loading,
