@@ -15,6 +15,9 @@ export interface User {
   email: string | null;
   dni: string | null;
   isActive: boolean;
+  certificateRangeStart: number | null;
+  certificateRangeEnd: number | null;
+  lastCertificate: string | null;
   role: Role;
   createdAt: string;
   updatedAt: string;
@@ -27,6 +30,8 @@ export interface UserPayload {
   email: string;
   dni: string;
   roleId: number;
+  certificateRangeStart?: number | null;
+  certificateRangeEnd?: number | null;
 }
 
 export interface UserUpdatePayload {
@@ -36,4 +41,6 @@ export interface UserUpdatePayload {
   email?: string;
   dni?: string;
   roleId?: number;
+  certificateRangeStart?: number | null;
+  certificateRangeEnd?: number | null;
 }

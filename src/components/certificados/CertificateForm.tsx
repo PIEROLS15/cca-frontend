@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import type { Sector } from "@/types/sector";
 import type { TerrainType } from "@/types/terrain-type";
 import type { CertificateFormState, OwnerFormState } from "@/hooks/use-certificate-form";
@@ -48,6 +48,14 @@ export function CertificateForm({
   onSearchRequest,
   onSubmit,
 }: CertificateFormProps) {
+  const terrainTypeOptions = terrainTypes.map((terrainType) => ({
+    label: terrainType.name,
+    value: String(terrainType.id),
+  }));
+  const sectorOptions = sectors.map((sector) => ({
+    label: sector.name,
+    value: String(sector.id),
+  }));
   const selectedTerrainType = terrainTypes.find((terrainType) => String(terrainType.id) === form.terrainTypeId) || null;
   const config = selectedTerrainType?.config || null;
   const isAreaPerimeterMode = form.measurementModeUsed === "AREA_PERIMETER";
@@ -159,16 +167,13 @@ export function CertificateForm({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           <div className="space-y-1.5 sm:col-span-1">
             <Label className="text-xs font-semibold">Tipo de Terreno</Label>
-            <Select value={form.terrainTypeId} onValueChange={(value) => onFieldChange("terrainTypeId", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona.." />
-              </SelectTrigger>
-              <SelectContent>
-                {terrainTypes.map((terrainType) => (
-                  <SelectItem key={terrainType.id} value={String(terrainType.id)}>{terrainType.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={form.terrainTypeId}
+              options={terrainTypeOptions}
+              placeholder="Selecciona.."
+              searchPlaceholder="Buscar tipo de terreno..."
+              onValueChange={(value) => onFieldChange("terrainTypeId", value)}
+            />
           </div>
 
           {(showAdditionalMeasureToggle || showAreaPerimeterToggle) && (
@@ -275,16 +280,13 @@ export function CertificateForm({
         <div className={`grid grid-cols-1 gap-4 ${showMzLot ? "sm:grid-cols-3" : "sm:grid-cols-1"}`}>
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Sector</Label>
-            <Select value={form.sectorId} onValueChange={(value) => onFieldChange("sectorId", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona.." />
-              </SelectTrigger>
-              <SelectContent>
-                {sectors.map((sector) => (
-                  <SelectItem key={sector.id} value={String(sector.id)}>{sector.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={form.sectorId}
+              options={sectorOptions}
+              placeholder="Selecciona.."
+              searchPlaceholder="Buscar sector..."
+              onValueChange={(value) => onFieldChange("sectorId", value)}
+            />
           </div>
           {showMzLot && (
             <>

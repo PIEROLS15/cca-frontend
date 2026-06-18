@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { useSession } from "@/context/session-context";
 import { useSectors } from "@/hooks/use-sectors";
 import { useTerrainTypes } from "@/hooks/use-terrain-types";
 import { CertificateRequestsService } from "@/services/certificate-requests.service";
@@ -170,6 +171,7 @@ interface UseCertificateFormOptions {
 
 export function useCertificateForm({ mode, certificateId }: UseCertificateFormOptions) {
   const router = useRouter();
+  const { updateUserData } = useSession();
   const { terrainTypes } = useTerrainTypes({ page: 1, limit: 100 });
   const { sectors } = useSectors({ page: 1, limit: 100 });
   const [form, setForm] = useState<CertificateFormState>(emptyForm);
@@ -398,7 +400,8 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
         await CertificatesService.update(certificateId, payload);
         toast.success("Certificado actualizado");
       } else {
-        await CertificatesService.create(payload);
+        const created = await CertificatesService.create(payload);
+        updateUserData({ lastCertificate: created.certificateNumber });
         toast.success("Certificado creado");
       }
 

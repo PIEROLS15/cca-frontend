@@ -76,6 +76,13 @@ export function canManageUser(actor: UserLike, target: { role?: RoleLike } | nul
   return false;
 }
 
+export function canManageCertificateLimit(actor: UserLike) {
+  const actorGroup = getRoleGroup(actor?.role);
+
+  if (!actorGroup) return false;
+  return [1, 2].includes(actorGroup);
+}
+
 export function canAssignRole(actor: UserLike, role: RoleLike) {
   return canManageUser(actor, { role });
 }

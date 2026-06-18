@@ -58,6 +58,13 @@ function toRoleUrlValue(name: string) {
   return String(name || "").replace(/[^a-zA-Z0-9]+/g, "");
 }
 
+function formatSequence(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === "") return null;
+  const numeric = Number(value);
+  if (!Number.isInteger(numeric) || numeric <= 0) return null;
+  return String(numeric).padStart(6, "0");
+}
+
 function CertificatesContent() {
   const { user } = useSession();
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
@@ -93,6 +100,16 @@ function CertificatesContent() {
   const [catalogsLoaded, setCatalogsLoaded] = useState(false);
   const hydratedSectorParamRef = useRef<string | null>(null);
   const hydratedCreatedByParamRef = useRef<string | null>(null);
+  const certificateRangeStart = user?.certificateRangeStart ?? null;
+  const certificateRangeEnd = user?.certificateRangeEnd ?? null;
+  const lastCertificate = formatSequence(user?.lastCertificate);
+  const currentLastNumeric = lastCertificate ? Number(lastCertificate) : null;
+  const nextCertificate = canEditCertificates && certificateRangeStart !== null && certificateRangeEnd !== null
+    ? formatSequence(Math.max(currentLastNumeric ?? 0, certificateRangeStart - 1) + 1)
+    : null;
+  const remainingCount = canEditCertificates && certificateRangeStart !== null && certificateRangeEnd !== null
+    ? Math.max(certificateRangeEnd - Math.max(currentLastNumeric ?? 0, certificateRangeStart - 1), 0)
+    : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -374,6 +391,33 @@ function CertificatesContent() {
           </div>
         }
       >
+        {canEditCertificates && (
+          <div className="mb-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-lg border bg-muted/30 px-4 py-3">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Límite</div>
+            <div className="mt-1 text-sm font-medium">
+              {certificateRangeStart !== null && certificateRangeEnd !== null
+                ? `${formatSequence(certificateRangeStart)} - ${formatSequence(certificateRangeEnd)}`
+                : "Sin límite asignado"}
+            </div>
+          </div>
+          <div className="rounded-lg border bg-muted/30 px-4 py-3">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Último emitido</div>
+            <div className="mt-1 text-sm font-medium">{lastCertificate || "—"}</div>
+          </div>
+          <div className="rounded-lg border bg-muted/30 px-4 py-3">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Próximo / restantes</div>
+            <div className="mt-1 text-sm font-medium">
+              {nextCertificate
+                ? remainingCount === 0
+                  ? "Límite alcanzado"
+                  : `${nextCertificate} · ${remainingCount ?? 0} restantes`
+                : "Sin disponibilidad"}
+            </div>
+          </div>
+          </div>
+        )}
+
         <SearchFilters
           search={search}
           onSearchChange={(value) => {

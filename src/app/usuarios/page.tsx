@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { Pencil, Plus, Power, PowerOff } from "lucide-react";
+import { Hash, Pencil, Plus, Power, PowerOff } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
@@ -12,11 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useUsers } from "@/hooks/use-users";
 import { UserFormDialog } from "@/components/usuarios/UserFormDialog";
+import { UserLimitDialog } from "@/components/usuarios/UserLimitDialog";
 import { StatusToggleDialog } from "@/components/usuarios/StatusToggleDialog";
 import { UserRoleBadge } from "@/components/usuarios/UserRoleBadge";
 import { UserActiveBadge } from "@/components/usuarios/UserActiveBadge";
 import { useSession } from "@/context/session-context";
-import { canManageUser, filterAssignableRoles } from "@/lib/access-control";
+import { canManageCertificateLimit, canManageUser, filterAssignableRoles } from "@/lib/access-control";
 import type { User } from "@/types/user";
 
 function UsuariosContent() {
@@ -31,6 +32,7 @@ function UsuariosContent() {
     syncToUrl({ page: page > 1 ? page : undefined, limit: limit !== 5 ? limit : undefined, search, roleId, isActive });
   }, [page, limit, search, roleId, isActive, syncToUrl]);
   const [formDlg, setFormDlg] = useState<{ mode: "create" | "edit"; user: User | null } | null>(null);
+  const [limitDlg, setLimitDlg] = useState<User | null>(null);
   const [toggleDlg, setToggleDlg] = useState<User | null>(null);
 
   const assignableRoles = useMemo(() => filterAssignableRoles(currentUser, roles), [roles, currentUser]);
@@ -38,6 +40,17 @@ function UsuariosContent() {
     () => roles.map((r) => ({ label: r.name, value: r.id })),
     [roles],
   );
+
+  function toOptionalNumber(value: string) {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    const parsed = Number(trimmed);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+  }
+
+  function formatRangeValue(value: number | null | undefined) {
+    return value != null ? String(value).padStart(6, "0") : "";
+  }
 
   const columns: DataTableColumn<User>[] = [
     {
@@ -71,6 +84,7 @@ function UsuariosContent() {
       className: "text-right w-28",
       render: (u) => {
         const canEdit = canManageUser(currentUser, u);
+        const canEditLimit = canManageCertificateLimit(currentUser);
 
         return (
           <div className="flex items-center gap-1 justify-end">
@@ -96,6 +110,16 @@ function UsuariosContent() {
           >
             <Pencil className="h-4 w-4" />
           </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 text-primary hover:text-primary"
+            onClick={() => canEditLimit && setLimitDlg(u)}
+            title={canEditLimit ? "Editar límite" : "Sin permisos"}
+            disabled={!canEditLimit}
+          >
+            <Hash className="h-4 w-4" />
+          </Button>
           </div>
         );
       },
@@ -103,6 +127,9 @@ function UsuariosContent() {
   ];
 
   async function handleFormSubmit(data: Record<string, string>, mode: "create" | "edit") {
+    const certificateRangeStart = toOptionalNumber(data.certificateRangeStart);
+    const certificateRangeEnd = toOptionalNumber(data.certificateRangeEnd);
+
     if (mode === "create") {
       const ok = await createUser({
         username: data.username,
@@ -111,6 +138,8 @@ function UsuariosContent() {
         email: data.email,
         dni: data.dni,
         roleId: Number(data.roleId),
+        ...(certificateRangeStart !== undefined ? { certificateRangeStart } : {}),
+        ...(certificateRangeEnd !== undefined ? { certificateRangeEnd } : {}),
       });
 
       if (ok) {
@@ -144,6 +173,28 @@ function UsuariosContent() {
 
     if (ok) {
       setToggleDlg(null);
+    }
+  }
+
+  async function handleLimitSubmit(data: Record<string, string>) {
+    if (!limitDlg) return;
+
+    const start = toOptionalNumber(data.certificateRangeStart);
+    const end = toOptionalNumber(data.certificateRangeEnd);
+
+    const payload: Record<string, unknown> = {};
+
+    if (data.certificateRangeStart !== formatRangeValue(limitDlg.certificateRangeStart)) payload.certificateRangeStart = start ?? null;
+    if (data.certificateRangeEnd !== formatRangeValue(limitDlg.certificateRangeEnd)) payload.certificateRangeEnd = end ?? null;
+
+    if (Object.keys(payload).length === 0) {
+      setLimitDlg(null);
+      return;
+    }
+
+    const ok = await updateUser(limitDlg.id, payload);
+    if (ok) {
+      setLimitDlg(null);
     }
   }
 
@@ -226,6 +277,14 @@ function UsuariosContent() {
           submitting={submitting}
           onClose={() => setFormDlg(null)}
           onSubmit={handleFormSubmit}
+        />
+
+        <UserLimitDialog
+          open={limitDlg !== null}
+          user={limitDlg}
+          submitting={submitting}
+          onClose={() => setLimitDlg(null)}
+          onSubmit={handleLimitSubmit}
         />
 
         <StatusToggleDialog
