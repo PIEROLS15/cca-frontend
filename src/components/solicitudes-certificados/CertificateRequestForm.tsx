@@ -38,6 +38,7 @@ const ATTACHMENT_OPTIONS = [
   { key: "dni", label: "Copia de DNI", value: "CopiaDni" },
   { key: "compraVenta", label: "Contrato de compra-venta notariado", value: "CompraVenta" },
   { key: "planoMemoria", label: "Copia de plano y memoria", value: "CopiaPlanoMemoria" },
+  { key: "constanciaAdjudicacion", label: "Constancia de adjudicación", value: "ConstanciaAdjudicacion" },
 ] as const;
 
 type CertificateTypeKey = typeof CERTIFICATE_TYPE_OPTIONS[number]["key"];
@@ -86,6 +87,7 @@ const emptyForm: CertificateRequestFormState = {
     dni: false,
     compraVenta: false,
     planoMemoria: false,
+    constanciaAdjudicacion: false,
     celular: false,
   },
   phoneNumber: "",
@@ -204,6 +206,10 @@ function mapRequestToForm(request: CertificateRequest): CertificateRequestFormSt
       planoMemoria: attachmentValues.some((value) => {
         const normalized = normalizeComparableText(value);
         return normalized.includes("plano") && normalized.includes("memoria");
+      }),
+      constanciaAdjudicacion: attachmentValues.some((value) => {
+        const normalized = normalizeComparableText(value);
+        return normalized.includes("constancia") && normalized.includes("adjudicacion");
       }),
       celular: attachmentValues.some((value) => normalizeComparableText(value).includes("celular")),
     },

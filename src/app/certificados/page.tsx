@@ -20,6 +20,7 @@ import { useCertificates } from "@/hooks/use-certificates";
 import { CertificatesService } from "@/services/certificates.service";
 import { RolesService } from "@/services/roles.service";
 import { SectorsService } from "@/services/sectors.service";
+import { useSession } from "@/context/session-context";
 import { formatDateTime } from "@/lib/utils";
 import type { Certificate, CertificateStatus } from "@/types/certificate";
 import type { Sector } from "@/types/sector";
@@ -57,8 +58,18 @@ function toRoleUrlValue(name: string) {
   return String(name || "").replace(/[^a-zA-Z0-9]+/g, "");
 }
 
+function formatSequence(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === "") return null;
+  const numeric = Number(value);
+  if (!Number.isInteger(numeric) || numeric <= 0) return null;
+  return String(numeric).padStart(6, "0");
+}
+
 function CertificatesContent() {
+  const { user } = useSession();
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
+  const canEditCertificates = user?.role.group !== 4;
+  const showRoleFilter = user?.role.group !== 4;
   const sectorParam = readParam("sector");
   const createdByParam = readParam("createdBy");
   const legacySectorId = readNumParam("sectorId", 0) || undefined;
@@ -78,7 +89,7 @@ function CertificatesContent() {
     documento: readParam("documento") ?? "",
     mz: readParam("mz") ?? "", lote: readParam("lote") ?? "",
     sectorId: legacySectorId,
-    createdByRoleId: legacyCreatedByRoleId,
+    createdByRoleId: showRoleFilter ? legacyCreatedByRoleId : undefined,
   });
 
   const [selectedCertificate, setSelectedCertificate] = useState<Certificate | null>(null);
@@ -89,19 +100,56 @@ function CertificatesContent() {
   const [catalogsLoaded, setCatalogsLoaded] = useState(false);
   const hydratedSectorParamRef = useRef<string | null>(null);
   const hydratedCreatedByParamRef = useRef<string | null>(null);
+  const certificateRangeStart = user?.certificateRangeStart ?? null;
+  const certificateRangeEnd = user?.certificateRangeEnd ?? null;
+  const lastCertificate = formatSequence(user?.lastCertificate);
+  const currentLastNumeric = lastCertificate ? Number(lastCertificate) : null;
+  const nextCertificate = canEditCertificates && certificateRangeStart !== null && certificateRangeEnd !== null
+    ? formatSequence(Math.max(currentLastNumeric ?? 0, certificateRangeStart - 1) + 1)
+    : null;
+  const remainingCount = canEditCertificates && certificateRangeStart !== null && certificateRangeEnd !== null
+    ? Math.max(certificateRangeEnd - Math.max(currentLastNumeric ?? 0, certificateRangeStart - 1), 0)
+    : null;
 
   useEffect(() => {
-    void Promise.all([
-      RolesService.listAll(),
-      SectorsService.list({ page: 1, limit: 100 }),
-    ]).then(([loadedRoles, sectorsResult]) => {
-      setRoles(loadedRoles);
-      setSectors(sectorsResult.data);
-      setCatalogsLoaded(true);
-    }).catch(() => {
-      setCatalogsLoaded(true);
-    });
-  }, []);
+    let cancelled = false;
+
+    async function loadCatalogs() {
+      try {
+        if (showRoleFilter) {
+          const loadedRoles = await RolesService.listAll();
+          if (!cancelled) {
+            setRoles(loadedRoles);
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setRoles([]);
+        }
+      }
+
+      try {
+        const sectorsResult = await SectorsService.list({ page: 1, limit: 100 });
+        if (!cancelled) {
+          setSectors(sectorsResult.data);
+        }
+      } catch {
+        if (!cancelled) {
+          setSectors([]);
+        }
+      }
+
+      if (!cancelled) {
+        setCatalogsLoaded(true);
+      }
+    }
+
+    void loadCatalogs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showRoleFilter]);
 
   useEffect(() => {
     if (legacySectorId || !sectorParam || sectors.length === 0) return;
@@ -249,22 +297,26 @@ function CertificatesContent() {
             <Eye className="h-4 w-4" />
             <span className="sr-only">Ver PDF {cert.certificateNumber}</span>
           </Button>
-          <Button asChild type="button" size="icon" variant="ghost" className="h-8 w-8 text-warning hover:text-warning">
-            <Link href={`/certificados/${cert.id}/editar`}>
-              <Pencil className="h-4 w-4" />
-              <span className="sr-only">Editar {cert.certificateNumber}</span>
-            </Link>
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8 text-destructive hover:text-destructive"
-            onClick={() => setSelectedCertificate(cert)}
-          >
-            <Trash2 className="h-4 w-4" />
-            <span className="sr-only">Eliminar {cert.certificateNumber}</span>
-          </Button>
+          {canEditCertificates && (
+            <>
+              <Button asChild type="button" size="icon" variant="ghost" className="h-8 w-8 text-warning hover:text-warning">
+                <Link href={`/certificados/${cert.id}/editar`}>
+                  <Pencil className="h-4 w-4" />
+                  <span className="sr-only">Editar {cert.certificateNumber}</span>
+                </Link>
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-destructive hover:text-destructive"
+                onClick={() => setSelectedCertificate(cert)}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="sr-only">Eliminar {cert.certificateNumber}</span>
+              </Button>
+            </>
+          )}
         </div>
       ),
     },
@@ -324,17 +376,48 @@ function CertificatesContent() {
         description="Gestión de certificados emitidos a comuneros y terceros."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" variant="outline" className="gap-1.5" onClick={handleDownloadReport} disabled={downloadingReport}>
-              <Download className="h-4 w-4" /> {downloadingReport ? "Descargando..." : "Descargar Certificados"}
-            </Button>
-            <Button asChild className="gap-1.5">
-              <Link href="/certificados/nuevo">
-                <Plus className="h-4 w-4" /> Agregar certificado
-              </Link>
-            </Button>
+            {canEditCertificates && (
+              <Button type="button" variant="outline" className="gap-1.5" onClick={handleDownloadReport} disabled={downloadingReport}>
+                <Download className="h-4 w-4" /> {downloadingReport ? "Descargando..." : "Descargar Certificados"}
+              </Button>
+            )}
+            {canEditCertificates && (
+              <Button asChild className="gap-1.5">
+                <Link href="/certificados/nuevo">
+                  <Plus className="h-4 w-4" /> Agregar certificado
+                </Link>
+              </Button>
+            )}
           </div>
         }
       >
+        {canEditCertificates && (
+          <div className="mb-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-lg border bg-muted/30 px-4 py-3">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Límite</div>
+            <div className="mt-1 text-sm font-medium">
+              {certificateRangeStart !== null && certificateRangeEnd !== null
+                ? `${formatSequence(certificateRangeStart)} - ${formatSequence(certificateRangeEnd)}`
+                : "Sin límite asignado"}
+            </div>
+          </div>
+          <div className="rounded-lg border bg-muted/30 px-4 py-3">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Último emitido</div>
+            <div className="mt-1 text-sm font-medium">{lastCertificate || "—"}</div>
+          </div>
+          <div className="rounded-lg border bg-muted/30 px-4 py-3">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Próximo / restantes</div>
+            <div className="mt-1 text-sm font-medium">
+              {nextCertificate
+                ? remainingCount === 0
+                  ? "Límite alcanzado"
+                  : `${nextCertificate} · ${remainingCount ?? 0} restantes`
+                : "Sin disponibilidad"}
+            </div>
+          </div>
+          </div>
+        )}
+
         <SearchFilters
           search={search}
           onSearchChange={(value) => {
@@ -381,20 +464,22 @@ function CertificatesContent() {
               ))}
             </SelectContent>
           </Select>
-          <Select
-            value={createdByRoleId !== undefined ? String(createdByRoleId) : "all"}
-            onValueChange={(v) => { setCreatedByRoleId(v === "all" ? undefined : Number(v)); setPage(1); }}
-          >
-            <SelectTrigger className="lg:w-44">
-              <SelectValue placeholder="Rol creador" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los roles</SelectItem>
-              {roleOptions.map((o) => (
-                <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {showRoleFilter && (
+            <Select
+              value={createdByRoleId !== undefined ? String(createdByRoleId) : "all"}
+              onValueChange={(v) => { setCreatedByRoleId(v === "all" ? undefined : Number(v)); setPage(1); }}
+            >
+              <SelectTrigger className="lg:w-44">
+                <SelectValue placeholder="Rol creador" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los roles</SelectItem>
+                {roleOptions.map((o) => (
+                  <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </SearchFilters>
 
         <DataTable

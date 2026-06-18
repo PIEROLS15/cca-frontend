@@ -64,11 +64,13 @@ function createInitialForm(mode: "create" | "edit", user: User | null) {
       email: user.email ?? "",
       dni: user.dni ?? "",
       roleId: String(user.role.id),
+      certificateRangeStart: user.certificateRangeStart != null ? String(user.certificateRangeStart).padStart(6, "0") : "",
+      certificateRangeEnd: user.certificateRangeEnd != null ? String(user.certificateRangeEnd).padStart(6, "0") : "",
       password: "",
     };
   }
 
-  return { fullName: "", username: "", email: "", dni: "", roleId: "", password: "" };
+  return { fullName: "", username: "", email: "", dni: "", roleId: "", certificateRangeStart: "", certificateRangeEnd: "", password: "" };
 }
 
 function UserFormDialogBody({
@@ -151,9 +153,40 @@ function UserFormDialogBody({
               {roles.map((r) => (
                 <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
               ))}
-            </SelectContent>
+              </SelectContent>
           </Select>
         </div>
+        {mode === "create" && (
+          <>
+            <div className="space-y-1.5">
+              <Label htmlFor="certificateRangeStart" className="text-xs">Límite inicial</Label>
+              <Input
+                id="certificateRangeStart"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                value={form.certificateRangeStart ?? ""}
+                onChange={(e) => setForm((s) => ({ ...s, certificateRangeStart: e.target.value.replace(/\D/g, "") }))}
+                placeholder="Ej: 000001"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="certificateRangeEnd" className="text-xs">Límite final</Label>
+              <Input
+                id="certificateRangeEnd"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                value={form.certificateRangeEnd ?? ""}
+                onChange={(e) => setForm((s) => ({ ...s, certificateRangeEnd: e.target.value.replace(/\D/g, "") }))}
+                placeholder="Ej: 002000"
+              />
+            </div>
+            <p className="sm:col-span-2 text-[11px] text-muted-foreground">
+              Si completas solo el límite inicial, se usará un bloque de 2000 números.
+            </p>
+          </>
+        )}
         <div className="space-y-1.5">
           <Label htmlFor="password" className="text-xs">
             {mode === "edit" ? "Contraseña (dejar vacío para mantener)" : "Contraseña"}

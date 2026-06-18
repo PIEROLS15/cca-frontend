@@ -4,15 +4,16 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { useSession } from "@/context/session-context";
 import { useSectors } from "@/hooks/use-sectors";
 import { useTerrainTypes } from "@/hooks/use-terrain-types";
 import { CertificateRequestsService } from "@/services/certificate-requests.service";
 import { CertificatesService } from "@/services/certificates.service";
-import { ClientsService } from "@/services/clients.service";
 import type { Certificate, CertificatePayload } from "@/types/certificate";
 import type { TerrainMeasurementMode, TerrainType } from "@/types/terrain-type";
 
 export interface OwnerFormState {
+  uid: string;
   id: number | null;
   fullName: string;
   documentNumber: string;
@@ -41,8 +42,12 @@ export interface CertificateFormState {
   west: string;
 }
 
+function createOwnerUid() {
+  return globalThis.crypto?.randomUUID?.() || `owner-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function createEmptyOwner(): OwnerFormState {
-  return { id: null, fullName: "", documentNumber: "" };
+  return { uid: createOwnerUid(), id: null, fullName: "", documentNumber: "" };
 }
 
 const emptyForm: CertificateFormState = {
@@ -88,6 +93,7 @@ function resolveModeForTerrainType(terrainType: TerrainType | null | undefined):
 function mapCertificateToForm(certificate: Certificate): CertificateFormState {
   const mappedOwners = certificate.owners?.length
     ? certificate.owners.map((owner) => ({
+        uid: owner.id ? `owner-${owner.id}` : createOwnerUid(),
         id: owner.id ?? null,
         fullName: owner.fullName || "",
         documentNumber: owner.documentNumber || "",
@@ -118,9 +124,15 @@ function mapCertificateToForm(certificate: Certificate): CertificateFormState {
   };
 }
 
-function buildPayload(form: CertificateFormState, owners: { id: number }[]): CertificatePayload {
+function buildPayload(form: CertificateFormState): CertificatePayload {
   return {
-    owners,
+    owners: form.owners
+      .map((owner) => ({
+        id: owner.id,
+        fullName: owner.fullName.trim(),
+        documentNumber: owner.documentNumber.replace(/\D/g, "").trim(),
+      }))
+      .filter((owner) => owner.fullName || owner.documentNumber || owner.id != null),
     requestNumber: form.requestNumber.trim(),
     certificateRequestId: form.certificateRequestId,
     terrain: {
@@ -159,6 +171,7 @@ interface UseCertificateFormOptions {
 
 export function useCertificateForm({ mode, certificateId }: UseCertificateFormOptions) {
   const router = useRouter();
+  const { updateUserData } = useSession();
   const { terrainTypes } = useTerrainTypes({ page: 1, limit: 100 });
   const { sectors } = useSectors({ page: 1, limit: 100 });
   const [form, setForm] = useState<CertificateFormState>(emptyForm);
@@ -297,37 +310,6 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
     });
   }
 
-  async function resolveOwnersForPayload() {
-    const resolved: { id: number }[] = [];
-    const seen = new Set<number>();
-
-    for (const owner of form.owners) {
-      if (isOwnerEmpty(owner)) continue;
-
-      let ownerId = owner.id;
-      if (!ownerId) {
-        const documentNumber = owner.documentNumber.trim();
-        if (!documentNumber) {
-          throw new Error("Cada dueño debe tener DNI");
-        }
-
-        const found = await ClientsService.searchByDocument(documentNumber);
-        ownerId = found.id;
-      }
-
-      if (!seen.has(ownerId)) {
-        seen.add(ownerId);
-        resolved.push({ id: ownerId });
-      }
-    }
-
-    if (resolved.length === 0) {
-      throw new Error("No hay titulares asignados");
-    }
-
-    return resolved;
-  }
-
   async function searchRequest() {
     const code = form.requestNumber.trim();
 
@@ -340,12 +322,6 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
 
     try {
       const request = await CertificateRequestsService.getById(code);
-      const [client, partnerClient] = await Promise.all([
-        ClientsService.searchByDocument(request.client.documentNumber),
-        request.partnerClient.documentNumber
-          ? ClientsService.searchByDocument(request.partnerClient.documentNumber)
-          : Promise.resolve(null),
-      ]);
 
       setForm((current) => ({
         ...current,
@@ -353,13 +329,15 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
         requestNumber: request.requestNumber,
         owners: [
           {
-            id: client.id,
+            uid: request.client.id ? `owner-${request.client.id}` : createOwnerUid(),
+            id: request.client.id ?? null,
             fullName: request.client.fullName,
             documentNumber: request.client.documentNumber,
           },
           ...(request.partnerClient.documentNumber
             ? [{
-                id: partnerClient?.id ?? null,
+                uid: request.partnerClient.id ? `owner-${request.partnerClient.id}` : createOwnerUid(),
+                id: request.partnerClient.id ?? null,
                 fullName: request.partnerClient.fullName,
                 documentNumber: request.partnerClient.documentNumber,
               }]
@@ -392,8 +370,23 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
 
     let payload;
     try {
-      const owners = await resolveOwnersForPayload();
-      payload = buildPayload(form, owners);
+      const owners = form.owners.filter((owner) => !isOwnerEmpty(owner));
+
+      if (owners.length === 0) {
+        throw new Error("No hay titulares asignados");
+      }
+
+      for (const owner of owners) {
+        if (!owner.documentNumber.trim()) {
+          throw new Error("Cada dueño debe tener DNI");
+        }
+
+        if (!owner.fullName.trim()) {
+          throw new Error("Cada dueño debe tener nombres y apellidos");
+        }
+      }
+
+      payload = buildPayload({ ...form, owners });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Complete los datos de los dueños";
       toast.error(message);
@@ -407,7 +400,8 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
         await CertificatesService.update(certificateId, payload);
         toast.success("Certificado actualizado");
       } else {
-        await CertificatesService.create(payload);
+        const created = await CertificatesService.create(payload);
+        updateUserData({ lastCertificate: created.certificateNumber });
         toast.success("Certificado creado");
       }
 

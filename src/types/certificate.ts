@@ -59,7 +59,11 @@ export interface Certificate {
 }
 
 export interface CertificatePayload {
-  owners: { id: number }[];
+  owners: {
+    id?: number | null;
+    fullName: string;
+    documentNumber: string;
+  }[];
   requestNumber: string;
   certificateRequestId?: number | null;
   terrain: {

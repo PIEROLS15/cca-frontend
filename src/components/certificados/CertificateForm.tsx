@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import type { Sector } from "@/types/sector";
 import type { TerrainType } from "@/types/terrain-type";
 import type { CertificateFormState, OwnerFormState } from "@/hooks/use-certificate-form";
@@ -48,6 +48,14 @@ export function CertificateForm({
   onSearchRequest,
   onSubmit,
 }: CertificateFormProps) {
+  const terrainTypeOptions = terrainTypes.map((terrainType) => ({
+    label: terrainType.name,
+    value: String(terrainType.id),
+  }));
+  const sectorOptions = sectors.map((sector) => ({
+    label: sector.name,
+    value: String(sector.id),
+  }));
   const selectedTerrainType = terrainTypes.find((terrainType) => String(terrainType.id) === form.terrainTypeId) || null;
   const config = selectedTerrainType?.config || null;
   const isAreaPerimeterMode = form.measurementModeUsed === "AREA_PERIMETER";
@@ -94,7 +102,7 @@ export function CertificateForm({
             </Button>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Al buscar el código se completarán automáticamente los datos de los titulares.
+            Opcional. Si lo ingresas, se completarán automáticamente los datos de los titulares.
           </p>
         </div>
 
@@ -110,7 +118,7 @@ export function CertificateForm({
 
           <div className="space-y-3">
             {form.owners.map((owner, index) => (
-              <div key={`${index}-${owner.documentNumber || "empty"}`} className="rounded-md border p-3 space-y-3">
+              <div key={owner.uid} className="rounded-md border p-3 space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Dueño {index + 1}
@@ -140,9 +148,12 @@ export function CertificateForm({
                     <Label className="text-xs">DNI</Label>
                     <Input
                       value={owner.documentNumber}
-                      onChange={(event) => onOwnerChange(index, "documentNumber", event.target.value)}
+                      onChange={(event) => onOwnerChange(index, "documentNumber", event.target.value.replace(/\D/g, ""))}
                       placeholder="Ingrese"
                       className="font-mono"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={8}
                     />
                   </div>
                 </div>
@@ -156,16 +167,13 @@ export function CertificateForm({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           <div className="space-y-1.5 sm:col-span-1">
             <Label className="text-xs font-semibold">Tipo de Terreno</Label>
-            <Select value={form.terrainTypeId} onValueChange={(value) => onFieldChange("terrainTypeId", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona.." />
-              </SelectTrigger>
-              <SelectContent>
-                {terrainTypes.map((terrainType) => (
-                  <SelectItem key={terrainType.id} value={String(terrainType.id)}>{terrainType.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={form.terrainTypeId}
+              options={terrainTypeOptions}
+              placeholder="Selecciona.."
+              searchPlaceholder="Buscar tipo de terreno..."
+              onValueChange={(value) => onFieldChange("terrainTypeId", value)}
+            />
           </div>
 
           {(showAdditionalMeasureToggle || showAreaPerimeterToggle) && (
@@ -272,16 +280,13 @@ export function CertificateForm({
         <div className={`grid grid-cols-1 gap-4 ${showMzLot ? "sm:grid-cols-3" : "sm:grid-cols-1"}`}>
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Sector</Label>
-            <Select value={form.sectorId} onValueChange={(value) => onFieldChange("sectorId", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona.." />
-              </SelectTrigger>
-              <SelectContent>
-                {sectors.map((sector) => (
-                  <SelectItem key={sector.id} value={String(sector.id)}>{sector.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={form.sectorId}
+              options={sectorOptions}
+              placeholder="Selecciona.."
+              searchPlaceholder="Buscar sector..."
+              onValueChange={(value) => onFieldChange("sectorId", value)}
+            />
           </div>
           {showMzLot && (
             <>

@@ -18,7 +18,7 @@ const MODULE_ACCESS_BY_GROUP: Record<number, string[]> = {
   1: ["dashboard", "roles", "users", "sectors", "terrain-types", "clients", "comuneros", "certificate-requests", "certificates", "assembly-record-requests", "reports"],
   2: ["dashboard", "roles", "users", "sectors", "terrain-types", "clients", "comuneros", "certificate-requests", "certificates", "assembly-record-requests", "reports"],
   3: ["dashboard", "roles", "sectors", "terrain-types", "clients", "comuneros", "certificate-requests", "certificates", "assembly-record-requests", "reports"],
-  4: ["dashboard", "clients", "certificate-requests", "assembly-record-requests"],
+  4: ["dashboard", "clients", "certificate-requests", "certificates", "assembly-record-requests"],
 };
 
 const ROUTE_MODULES = [
@@ -74,6 +74,13 @@ export function canManageUser(actor: UserLike, target: { role?: RoleLike } | nul
   if (actorGroup === 1) return targetGroup !== 1;
   if (actorGroup === 2) return targetGroup === 3 || targetGroup === 4;
   return false;
+}
+
+export function canManageCertificateLimit(actor: UserLike) {
+  const actorGroup = getRoleGroup(actor?.role);
+
+  if (!actorGroup) return false;
+  return [1, 2].includes(actorGroup);
 }
 
 export function canAssignRole(actor: UserLike, role: RoleLike) {
