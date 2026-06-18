@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -12,7 +13,6 @@ import { SearchFilters } from "@/components/ui/SearchFilters";
 import { Button } from "@/components/ui/button";
 import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useAssemblyRecordRequests } from "@/hooks/use-assembly-record-requests";
-import { AssemblyRecordRequestsService } from "@/services/assembly-record-requests.service";
 import type { AssemblyRecordRequest } from "@/types/assembly-record-request";
 
 function formatDateOnly(value: string | null) {
@@ -27,6 +27,7 @@ function isComunero(value: string) {
 }
 
 function SolicitudesActaContent() {
+  const router = useRouter();
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
   const { requests, loading, submitting, deleteRequest, page, setPage, limit, setLimit, search, setSearch, total } = useAssemblyRecordRequests({
     page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
@@ -85,7 +86,7 @@ function SolicitudesActaContent() {
             variant="ghost"
             className="h-8 w-8 text-info hover:text-info"
             title="Ver PDF"
-            onClick={() => window.open(AssemblyRecordRequestsService.getPdfUrl(r.code), "_blank", "noopener,noreferrer")}
+            onClick={() => router.push(`/solicitudes-acta/${r.id}/pdf`)}
           >
             <Eye className="h-4 w-4" />
             <span className="sr-only">Ver PDF {r.code}</span>

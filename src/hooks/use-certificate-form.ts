@@ -468,7 +468,6 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
     }
 
     setSubmitting(true);
-    const previewTab = mode === "create" && typeof window !== "undefined" ? window.open("", "_blank") : null;
 
     try {
       if (mode === "edit" && certificateId) {
@@ -477,23 +476,13 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
       } else {
         const created = await CertificatesService.create(payload);
         updateUserData({ lastCertificate: created.certificateNumber });
-
-        if (previewTab && !previewTab.closed) {
-          previewTab.location.href = CertificatesService.getPdfUrl(created.id, created.certificateNumber);
-          previewTab.focus();
-        } else {
-          window.open(CertificatesService.getPdfUrl(created.id, created.certificateNumber), "_blank");
-        }
-
         toast.success("Certificado creado");
+        router.push(`/certificados/${created.id}/pdf`);
+        return;
       }
 
       router.push("/certificados");
     } catch (error) {
-      if (previewTab && !previewTab.closed) {
-        previewTab.close();
-      }
-
       const message = error instanceof Error ? error.message : "No se pudo guardar el certificado";
       toast.error(message);
     } finally {

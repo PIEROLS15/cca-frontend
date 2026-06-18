@@ -5,16 +5,16 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { AssemblyRecordRequestsService } from "@/services/assembly-record-requests.service";
-import type { AssemblyRecordRequest } from "@/types/assembly-record-request";
+import { CertificateRequestsService } from "@/services/certificate-requests.service";
+import type { CertificateRequest } from "@/types/certificate-request";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export default function SolicitudActaPdfPage({ params }: PageProps) {
+export default function SolicitudCertPdfPage({ params }: PageProps) {
   const { id } = use(params);
-  const [request, setRequest] = useState<AssemblyRecordRequest | null>(null);
+  const [request, setRequest] = useState<CertificateRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,7 +23,7 @@ export default function SolicitudActaPdfPage({ params }: PageProps) {
 
     async function loadRequest() {
       try {
-        const data = await AssemblyRecordRequestsService.getById(Number(id));
+        const data = await CertificateRequestsService.getById(id);
 
         if (!cancelled) {
           setRequest(data);
@@ -51,7 +51,7 @@ export default function SolicitudActaPdfPage({ params }: PageProps) {
 
   if (request) {
     try {
-      pdfUrl = AssemblyRecordRequestsService.getPdfUrl(request.code);
+      pdfUrl = CertificateRequestsService.getPdfUrl(request.id, request.requestNumber);
     } catch (err) {
       pdfError = err instanceof Error ? err.message : "No se pudo cargar el PDF";
     }
@@ -61,7 +61,7 @@ export default function SolicitudActaPdfPage({ params }: PageProps) {
     <div className="min-h-screen bg-background flex flex-col overflow-hidden">
       <div className="border-b bg-background px-4 py-3">
         <Button asChild className="gap-1.5">
-          <Link href="/solicitudes-acta">Volver</Link>
+          <Link href="/solicitudes-certificados">Volver</Link>
         </Button>
       </div>
 
@@ -83,7 +83,7 @@ export default function SolicitudActaPdfPage({ params }: PageProps) {
         <div className="relative flex-1 min-h-0 bg-zinc-900">
           <iframe
             src={pdfUrl}
-            title={`Solicitud de acta ${request.code}`}
+            title={`Solicitud de certificado ${request.requestNumber}`}
             className="absolute inset-0 block h-full w-full border-0"
           />
         </div>
