@@ -263,6 +263,7 @@ export function useAssemblyRecordForm({ mode, requestId }: UseAssemblyRecordForm
     }
 
     setSubmitting(true);
+    const previewTab = mode === "create" && typeof window !== "undefined" ? window.open("", "_blank") : null;
 
     try {
       const payload = {
@@ -289,12 +290,24 @@ export function useAssemblyRecordForm({ mode, requestId }: UseAssemblyRecordForm
           return;
         }
 
-        await AssemblyRecordRequestsService.create(payload);
+        const created = await AssemblyRecordRequestsService.create(payload);
+
+        if (previewTab && !previewTab.closed) {
+          previewTab.location.href = AssemblyRecordRequestsService.getPdfUrl(created.code);
+          previewTab.focus();
+        } else {
+          window.open(AssemblyRecordRequestsService.getPdfUrl(created.code), "_blank");
+        }
+
         toast.success("Solicitud de acta creada");
       }
 
       router.push("/solicitudes-acta");
     } catch (error) {
+      if (previewTab && !previewTab.closed) {
+        previewTab.close();
+      }
+
       toast.error(getErrorMessage(error, "No se pudo guardar la solicitud"));
     } finally {
       setSubmitting(false);

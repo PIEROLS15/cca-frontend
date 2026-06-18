@@ -35,12 +35,17 @@ function NewCertificateFormPage() {
     loading,
     submitting,
     searching,
+    searchingOwnerIndex,
+    ownerSearch,
     terrainTypes,
     sectors,
     updateField,
     updateOwnerField,
     addOwner,
     removeOwner,
+    searchOwnerByDocument,
+    closeOwnerSearch,
+    acceptOwnerSearch,
     searchRequest,
     handleSubmit,
   } = useCertificateForm({ mode: "create" });
@@ -64,12 +69,17 @@ function NewCertificateFormPage() {
           loading={loading}
           submitting={submitting}
           searching={searching}
+          searchingOwnerIndex={searchingOwnerIndex}
+          ownerSearch={ownerSearch}
           terrainTypes={terrainTypes}
           sectors={sectors}
           onFieldChange={updateField}
           onOwnerChange={updateOwnerField}
           onAddOwner={addOwner}
           onRemoveOwner={removeOwner}
+          onSearchOwnerByDocument={searchOwnerByDocument}
+          onCloseOwnerSearch={closeOwnerSearch}
+          onAcceptOwnerSearch={acceptOwnerSearch}
           onSearchRequest={searchRequest}
           onSubmit={handleSubmit}
         />

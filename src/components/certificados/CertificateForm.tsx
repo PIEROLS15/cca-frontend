@@ -6,9 +6,11 @@ import { Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
+import type { OwnerSearchState } from "@/hooks/use-certificate-form";
 import type { Sector } from "@/types/sector";
 import type { TerrainType } from "@/types/terrain-type";
 import type { CertificateFormState, OwnerFormState } from "@/hooks/use-certificate-form";
@@ -23,12 +25,17 @@ interface CertificateFormProps {
   loading: boolean;
   submitting: boolean;
   searching: boolean;
+  searchingOwnerIndex: number | null;
+  ownerSearch: OwnerSearchState;
   terrainTypes: TerrainType[];
   sectors: Sector[];
   onFieldChange: <Key extends keyof CertificateFormState>(field: Key, value: CertificateFormState[Key]) => void;
   onOwnerChange: <Key extends keyof OwnerFormState>(index: number, field: Key, value: OwnerFormState[Key]) => void;
   onAddOwner: () => void;
   onRemoveOwner: (index: number) => void;
+  onSearchOwnerByDocument: (index: number) => void;
+  onCloseOwnerSearch: () => void;
+  onAcceptOwnerSearch: () => void;
   onSearchRequest: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }
@@ -39,12 +46,17 @@ export function CertificateForm({
   loading,
   submitting,
   searching,
+  searchingOwnerIndex,
+  ownerSearch,
   terrainTypes,
   sectors,
   onFieldChange,
   onOwnerChange,
   onAddOwner,
   onRemoveOwner,
+  onSearchOwnerByDocument,
+  onCloseOwnerSearch,
+  onAcceptOwnerSearch,
   onSearchRequest,
   onSubmit,
 }: CertificateFormProps) {
@@ -146,15 +158,26 @@ export function CertificateForm({
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">DNI</Label>
-                    <Input
-                      value={owner.documentNumber}
-                      onChange={(event) => onOwnerChange(index, "documentNumber", event.target.value.replace(/\D/g, ""))}
-                      placeholder="Ingrese"
-                      className="font-mono"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={8}
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        value={owner.documentNumber}
+                        onChange={(event) => onOwnerChange(index, "documentNumber", event.target.value.replace(/\D/g, ""))}
+                        placeholder="Ingrese"
+                        className="font-mono"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={8}
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => onSearchOwnerByDocument(index)}
+                        disabled={searchingOwnerIndex === index || !owner.documentNumber.trim()}
+                        className="gap-1.5 shrink-0"
+                      >
+                        {searchingOwnerIndex === index ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                        Buscar
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -330,6 +353,43 @@ export function CertificateForm({
           </Button>
         </div>
       </form>
+
+      <Dialog open={ownerSearch.open} onOpenChange={(open) => !open && onCloseOwnerSearch()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar cliente encontrado</DialogTitle>
+            <DialogDescription>
+              Revisa los datos y confirma si corresponden al dueño que quieres registrar.
+            </DialogDescription>
+          </DialogHeader>
+
+          {ownerSearch.result && (
+            <div className="rounded-md border border-input bg-muted/30 p-4 space-y-2 text-sm">
+              <div>
+                <div className="text-xs text-muted-foreground">Nombres y Apellidos</div>
+                <div className="font-medium">{ownerSearch.result.fullName}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">DNI</div>
+                <div className="font-mono">{ownerSearch.result.documentNumber}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Dirección</div>
+                <div>{ownerSearch.result.address || "—"}</div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onCloseOwnerSearch}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={onAcceptOwnerSearch} disabled={!ownerSearch.result}>
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

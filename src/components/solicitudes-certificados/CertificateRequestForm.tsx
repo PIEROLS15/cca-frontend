@@ -448,18 +448,31 @@ export function CertificateRequestForm({ mode, requestId }: CertificateRequestFo
     };
 
     setSubmitting(true);
+    const previewTab = mode === "create" && typeof window !== "undefined" ? window.open("", "_blank") : null;
 
     try {
       if (mode === "edit" && requestId) {
         await CertificateRequestsService.update(Number(requestId), payload);
         toast.success("Solicitud actualizada");
       } else {
-        await CertificateRequestsService.create(payload);
+        const created = await CertificateRequestsService.create(payload);
+
+        if (previewTab && !previewTab.closed) {
+          previewTab.location.href = CertificateRequestsService.getPdfUrl(created.id, created.requestNumber);
+          previewTab.focus();
+        } else {
+          window.open(CertificateRequestsService.getPdfUrl(created.id, created.requestNumber), "_blank");
+        }
+
         toast.success("Solicitud creada");
       }
 
       router.push("/solicitudes-certificados");
     } catch (error) {
+      if (previewTab && !previewTab.closed) {
+        previewTab.close();
+      }
+
       const message = error instanceof Error ? error.message : "No se pudo guardar la solicitud";
       toast.error(message);
     } finally {
