@@ -5,32 +5,32 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { AssemblyRecordRequestsService } from "@/services/assembly-record-requests.service";
-import type { AssemblyRecordRequest } from "@/types/assembly-record-request";
+import { CertificatesService } from "@/services/certificates.service";
+import type { Certificate } from "@/types/certificate";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export default function SolicitudActaPdfPage({ params }: PageProps) {
+export default function CertificadoPdfPage({ params }: PageProps) {
   const { id } = use(params);
-  const [request, setRequest] = useState<AssemblyRecordRequest | null>(null);
+  const [certificate, setCertificate] = useState<Certificate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadRequest() {
+    async function loadCertificate() {
       try {
-        const data = await AssemblyRecordRequestsService.getById(Number(id));
+        const data = await CertificatesService.getById(Number(id));
 
         if (!cancelled) {
-          setRequest(data);
+          setCertificate(data);
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "No se pudo cargar la solicitud");
+          setError(err instanceof Error ? err.message : "No se pudo cargar el certificado");
         }
       } finally {
         if (!cancelled) {
@@ -39,7 +39,7 @@ export default function SolicitudActaPdfPage({ params }: PageProps) {
       }
     }
 
-    void loadRequest();
+    void loadCertificate();
 
     return () => {
       cancelled = true;
@@ -49,9 +49,9 @@ export default function SolicitudActaPdfPage({ params }: PageProps) {
   let pdfUrl: string | null = null;
   let pdfError: string | null = null;
 
-  if (request) {
+  if (certificate) {
     try {
-      pdfUrl = AssemblyRecordRequestsService.getPdfUrl(request.code);
+      pdfUrl = CertificatesService.getPdfUrl(certificate.id, certificate.certificateNumber);
     } catch (err) {
       pdfError = err instanceof Error ? err.message : "No se pudo cargar el PDF";
     }
@@ -61,7 +61,7 @@ export default function SolicitudActaPdfPage({ params }: PageProps) {
     <div className="min-h-screen bg-background flex flex-col overflow-hidden">
       <div className="border-b bg-background px-4 py-3">
         <Button asChild className="gap-1.5">
-          <Link href="/solicitudes-acta">Volver</Link>
+          <Link href="/certificados">Volver</Link>
         </Button>
       </div>
 
@@ -72,18 +72,18 @@ export default function SolicitudActaPdfPage({ params }: PageProps) {
             <span>Cargando PDF...</span>
           </div>
         </div>
-      ) : error || !request || pdfError || !pdfUrl ? (
+      ) : error || !certificate || pdfError || !pdfUrl ? (
         <div className="flex flex-1 items-center justify-center bg-muted/40 p-8">
           <div className="text-center">
             <h1 className="text-2xl font-semibold">No se pudo mostrar el PDF</h1>
-            <p className="text-muted-foreground mt-2">{error || pdfError || `No existe una solicitud con el ID ${id}.`}</p>
+            <p className="text-muted-foreground mt-2">{error || pdfError || `No existe un certificado con el ID ${id}.`}</p>
           </div>
         </div>
       ) : (
         <div className="relative flex-1 min-h-0 bg-zinc-900">
           <iframe
             src={pdfUrl}
-            title={`Solicitud de acta ${request.code}`}
+            title={`Certificado ${certificate.certificateNumber}`}
             className="absolute inset-0 block h-full w-full border-0"
           />
         </div>
