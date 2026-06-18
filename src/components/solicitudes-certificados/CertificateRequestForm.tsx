@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Search, UserPlus, Users } from "lucide-react";
+import { ArrowLeft, Loader2, Search, Trash2, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -39,6 +39,7 @@ const ATTACHMENT_OPTIONS = [
   { key: "compraVenta", label: "Contrato de compra-venta notariado", value: "CompraVenta" },
   { key: "planoMemoria", label: "Copia de plano y memoria", value: "CopiaPlanoMemoria" },
   { key: "constanciaAdjudicacion", label: "Constancia de adjudicación", value: "ConstanciaAdjudicacion" },
+  { key: "testimonio", label: "Testimonio", value: "Testimonio" },
 ] as const;
 
 type CertificateTypeKey = typeof CERTIFICATE_TYPE_OPTIONS[number]["key"];
@@ -88,6 +89,7 @@ const emptyForm: CertificateRequestFormState = {
     compraVenta: false,
     planoMemoria: false,
     constanciaAdjudicacion: false,
+    testimonio: false,
     celular: false,
   },
   phoneNumber: "",
@@ -211,6 +213,7 @@ function mapRequestToForm(request: CertificateRequest): CertificateRequestFormSt
         const normalized = normalizeComparableText(value);
         return normalized.includes("constancia") && normalized.includes("adjudicacion");
       }),
+      testimonio: attachmentValues.some((value) => normalizeComparableText(value).includes("testimonio")),
       celular: attachmentValues.some((value) => normalizeComparableText(value).includes("celular")),
     },
     phoneNumber,
@@ -361,6 +364,20 @@ export function CertificateRequestForm({ mode, requestId }: CertificateRequestFo
         },
       }));
     }
+  }
+
+  function clearPartnerClient() {
+    setForm((current) => ({
+      ...current,
+      partnerClient: { ...emptyPerson },
+    }));
+  }
+
+  function clearClient() {
+    setForm((current) => ({
+      ...current,
+      client: { ...emptyPerson },
+    }));
   }
 
   function personaFields(who: "client" | "partnerClient", persona: PersonFormState) {
@@ -590,7 +607,7 @@ export function CertificateRequestForm({ mode, requestId }: CertificateRequestFo
 
             <div className="space-y-2 border-t pt-6">
               {sectionTitle("Datos del cliente")}
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
                 <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => openBuscar("reniec", "client")}>
                   <Search className="h-4 w-4" /> Buscar (SUNAT/RENIEC)
                 </Button>
@@ -600,13 +617,22 @@ export function CertificateRequestForm({ mode, requestId }: CertificateRequestFo
                 <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => openAgregar("client")}>
                   <UserPlus className="h-4 w-4" /> Agregar cliente
                 </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/15 hover:text-destructive"
+                  onClick={clearClient}
+                >
+                  <Trash2 className="h-4 w-4" /> Limpiar
+                </Button>
               </div>
               {personaFields("client", form.client)}
             </div>
 
             <div className="space-y-2">
               {sectionTitle("Datos del conviviente")}
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
                 <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => openBuscar("reniec", "partnerClient")}>
                   <Search className="h-4 w-4" /> Buscar (SUNAT/RENIEC)
                 </Button>
@@ -615,6 +641,15 @@ export function CertificateRequestForm({ mode, requestId }: CertificateRequestFo
                 </Button>
                 <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => openAgregar("partnerClient")}>
                   <UserPlus className="h-4 w-4" /> Agregar conviviente
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/15 hover:text-destructive"
+                  onClick={clearPartnerClient}
+                >
+                  <Trash2 className="h-4 w-4" /> Limpiar
                 </Button>
               </div>
               {personaFields("partnerClient", form.partnerClient)}
