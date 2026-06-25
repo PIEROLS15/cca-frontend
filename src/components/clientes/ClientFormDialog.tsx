@@ -42,6 +42,8 @@ export function ClientFormDialog({
   onClose,
   onSubmit,
 }: ClientFormDialogProps) {
+  const clientTypeValue = values.clientType || "Tercero";
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-xl">
@@ -91,13 +93,17 @@ export function ClientFormDialog({
 
             <div className="space-y-1.5">
               <Label htmlFor="client-type">Tipo de cliente</Label>
-              <Select value={values.clientType} onValueChange={(value) => onClientTypeChange(value as ClientType)}>
+              <Select
+                key={`${mode}-${clientTypeValue}`}
+                value={clientTypeValue}
+                onValueChange={(value) => onClientTypeChange(value as ClientType)}
+              >
                 <SelectTrigger id="client-type" disabled={submitting}>
                   <SelectValue placeholder="Selecciona el tipo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Comunero">Comunero</SelectItem>
                   <SelectItem value="Tercero">Tercero</SelectItem>
+                  <SelectItem value="Comunero">Comunero</SelectItem>
                 </SelectContent>
               </Select>
             </div>
