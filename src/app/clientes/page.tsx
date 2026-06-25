@@ -17,13 +17,15 @@ import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useClients } from "@/hooks/use-clients";
 import type { Client, ClientPayload, ClientType } from "@/types/client";
 
-const EMPTY_FORM: ClientPayload = {
-  fullName: "",
-  documentNumber: "",
-  address: "",
-  phone: "",
-  clientType: "Comunero",
-};
+function createEmptyClientForm(): ClientPayload {
+  return {
+    fullName: "",
+    documentNumber: "",
+    address: "",
+    phone: "",
+    clientType: "Tercero",
+  };
+}
 
 type DialogMode = "create" | "edit" | "delete" | null;
 
@@ -42,7 +44,7 @@ function ClientesContent() {
   }, [page, limit, search, documentNumber, clientType, syncToUrl]);
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [formValues, setFormValues] = useState<ClientPayload>(EMPTY_FORM);
+  const [formValues, setFormValues] = useState<ClientPayload>(() => createEmptyClientForm());
 
   const columns: DataTableColumn<Client>[] = [
     {
@@ -113,13 +115,13 @@ function ClientesContent() {
   function closeDialog() {
     setDialogMode(null);
     setSelectedClient(null);
-    setFormValues(EMPTY_FORM);
+    setFormValues(createEmptyClientForm());
   }
 
   function openCreateDialog() {
     setDialogMode("create");
     setSelectedClient(null);
-    setFormValues(EMPTY_FORM);
+    setFormValues(createEmptyClientForm());
   }
 
   function openEditDialog(client: Client) {
@@ -233,6 +235,7 @@ function ClientesContent() {
         )}
 
         <ClientFormDialog
+          key={`${dialogMode ?? "none"}-${selectedClient?.id ?? "new"}`}
           open={dialogMode === "create" || dialogMode === "edit"}
           mode={dialogMode === "edit" ? "edit" : "create"}
           values={formValues}
