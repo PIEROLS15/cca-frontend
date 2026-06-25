@@ -324,24 +324,6 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
     });
   }
 
-  async function resolveOwnersWithReniec(owners: OwnerFormState[]) {
-    return Promise.all(owners.map(async (owner) => {
-      const documentNumber = normalizeDocumentNumber(owner.documentNumber);
-
-      if (!documentNumber) {
-        throw new Error("Cada dueño debe tener DNI");
-      }
-
-      const reniec = await ClientsService.searchReniec(documentNumber);
-
-      return {
-        ...owner,
-        fullName: reniec.fullName.trim(),
-        documentNumber: normalizeDocumentNumber(reniec.documentNumber || documentNumber),
-      };
-    }));
-  }
-
   async function searchOwnerByDocument(index: number) {
     const owner = form.owners[index];
     const documentNumber = owner?.documentNumber.trim();
@@ -454,13 +436,16 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
       }
 
       for (const owner of owners) {
+        if (!owner.fullName.trim()) {
+          throw new Error("Cada dueño debe tener nombres y DNI");
+        }
+
         if (!normalizeDocumentNumber(owner.documentNumber)) {
           throw new Error("Cada dueño debe tener DNI");
         }
       }
 
-      const ownersWithReniec = await resolveOwnersWithReniec(owners);
-      payload = buildPayload({ ...form, owners: ownersWithReniec });
+      payload = buildPayload({ ...form, owners });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Complete los datos de los dueños";
       toast.error(message);

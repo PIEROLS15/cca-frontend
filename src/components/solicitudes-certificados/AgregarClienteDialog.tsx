@@ -33,7 +33,7 @@ const emptyForm: ClienteForm = {
   documentNumber: "",
   address: "",
   phone: "",
-  clientType: "",
+  clientType: "Tercero",
 };
 
 export function AgregarClienteDialog({ open, title, onClose, onAccept }: AgregarClienteDialogProps) {
@@ -116,13 +116,13 @@ function AgregarClienteDialogBody({ title, onClose, onAccept }: Omit<AgregarClie
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="agregar-clientType" className="text-xs">Tipo de cliente</Label>
-          <Select value={form.clientType} onValueChange={(v) => updateField("clientType", v)}>
+          <Select key={form.clientType || "Tercero"} value={form.clientType || "Tercero"} onValueChange={(v) => updateField("clientType", v)}>
             <SelectTrigger id="agregar-clientType">
               <SelectValue placeholder="Selecciona el tipo" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Comunero">Comunero</SelectItem>
               <SelectItem value="Tercero">Tercero</SelectItem>
+              <SelectItem value="Comunero">Comunero</SelectItem>
             </SelectContent>
           </Select>
         </div>
