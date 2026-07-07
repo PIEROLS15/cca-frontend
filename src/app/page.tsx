@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { redirect } from "next/navigation";
-import { PublicHome } from "@/components/home/PublicHome";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageLoader } from "@/components/ui/PageLoader";
