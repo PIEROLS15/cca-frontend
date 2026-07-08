@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PublicHome } from "@/components/home/PublicHome";
+import { redirect } from "next/navigation";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageLoader } from "@/components/ui/PageLoader";
@@ -56,7 +56,7 @@ export default function DashboardPage() {
   if (loading) return <PageLoader />;
 
   if (!isAuthenticated || !user) {
-    return <PublicHome />;
+    redirect("/login");
   }
 
   return (
