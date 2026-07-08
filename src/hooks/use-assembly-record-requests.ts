@@ -74,6 +74,22 @@ export function useAssemblyRecordRequests(initial?: { page?: number; limit?: num
     }
   }
 
+  async function updateRequestStatus(request: AssemblyRecordRequest, status: AssemblyRecordRequest["status"]) {
+    setSubmitting(true);
+
+    try {
+      await AssemblyRecordRequestsService.updateStatus(request.id, { status });
+      await loadRequests();
+      toast.success(`Estado de ${request.code} actualizado`);
+      return true;
+    } catch (error) {
+      toast.error(getErrorMessage(error, "No se pudo actualizar el estado"));
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return {
     requests,
     loading,
@@ -87,5 +103,6 @@ export function useAssemblyRecordRequests(initial?: { page?: number; limit?: num
     total,
     totalPages,
     deleteRequest,
+    updateRequestStatus,
   };
 }

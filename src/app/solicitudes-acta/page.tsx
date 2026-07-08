@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
@@ -11,9 +11,11 @@ import { DeleteConfirmDialog } from "@/components/ui/DeleteConfirmDialog";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { SearchFilters } from "@/components/ui/SearchFilters";
 import { Button } from "@/components/ui/button";
+import { AssemblyRecordRequestStatusBadge } from "@/components/solicitudes-acta/AssemblyRecordRequestStatusBadge";
+import { AssemblyRecordRequestStatusDialog } from "@/components/solicitudes-acta/AssemblyRecordRequestStatusDialog";
 import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useAssemblyRecordRequests } from "@/hooks/use-assembly-record-requests";
-import type { AssemblyRecordRequest } from "@/types/assembly-record-request";
+import type { AssemblyRecordRequest, AssemblyRecordRequestStatus } from "@/types/assembly-record-request";
 
 function formatDateOnly(value: string | null) {
   if (!value) return "—";
@@ -29,10 +31,11 @@ function isComunero(value: string) {
 function SolicitudesActaContent() {
   const router = useRouter();
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
-  const { requests, loading, submitting, deleteRequest, page, setPage, limit, setLimit, search, setSearch, total } = useAssemblyRecordRequests({
+  const { requests, loading, submitting, deleteRequest, updateRequestStatus, page, setPage, limit, setLimit, search, setSearch, total } = useAssemblyRecordRequests({
     page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
   });
   const [selectedRequest, setSelectedRequest] = useState<AssemblyRecordRequest | null>(null);
+  const [statusDlg, setStatusDlg] = useState<AssemblyRecordRequest | null>(null);
 
   useEffect(() => {
     syncToUrl({ page: page > 1 ? page : undefined, limit: limit !== 5 ? limit : undefined, search });
@@ -75,11 +78,27 @@ function SolicitudesActaContent() {
       render: (r) => <span className="text-xs text-muted-foreground">{formatDateOnly(r.awardDate)}</span>,
     },
     {
+      key: "status",
+      header: "Estado",
+      render: (r) => <AssemblyRecordRequestStatusBadge status={r.status} />,
+    },
+    {
       key: "actions",
       header: "",
-      className: "text-right w-28",
+      className: "text-right w-44",
       render: (r) => (
         <div className="flex items-center gap-1 justify-end">
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 text-primary hover:text-primary"
+            title="Cambiar estado"
+            onClick={() => setStatusDlg(r)}
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span className="sr-only">Cambiar estado {r.code}</span>
+          </Button>
           <Button
             type="button"
             size="icon"
@@ -119,6 +138,16 @@ function SolicitudesActaContent() {
 
     if (success) {
       setSelectedRequest(null);
+    }
+  }
+
+  async function handleStatusChange(status: AssemblyRecordRequestStatus) {
+    if (!statusDlg) return;
+
+    const success = await updateRequestStatus(statusDlg, status);
+
+    if (success) {
+      setStatusDlg(null);
     }
   }
 
@@ -178,6 +207,14 @@ function SolicitudesActaContent() {
           submitting={submitting}
           onClose={() => setSelectedRequest(null)}
           onConfirm={handleDelete}
+        />
+
+        <AssemblyRecordRequestStatusDialog
+          open={Boolean(statusDlg)}
+          request={statusDlg}
+          submitting={submitting}
+          onClose={() => setStatusDlg(null)}
+          onConfirm={handleStatusChange}
         />
       </PageContainer>
     </AppLayout>

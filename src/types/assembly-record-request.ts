@@ -2,6 +2,8 @@ export interface AssemblyRecordAttachment {
   type: string;
 }
 
+export type AssemblyRecordRequestStatus = "En Proceso" | "Por Recoger" | "Entregado";
+
 export interface AssemblyRecordRequest {
   id: number;
   code: string;
@@ -20,6 +22,7 @@ export interface AssemblyRecordRequest {
   phone: string | null;
   attachments: AssemblyRecordAttachment[];
   legacyPayload?: unknown | null;
+  status: AssemblyRecordRequestStatus;
   createdAt: string;
   updatedAt: string;
   client: {
@@ -66,4 +69,8 @@ export interface AssemblyRecordRequestUpdatePayload {
   email?: string;
   phone?: string;
   attachments?: AssemblyRecordAttachment[];
+}
+
+export interface AssemblyRecordRequestStatusPayload {
+  status: AssemblyRecordRequestStatus;
 }
