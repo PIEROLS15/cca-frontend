@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
@@ -11,10 +11,12 @@ import { DeleteConfirmDialog } from "@/components/ui/DeleteConfirmDialog";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { SearchFilters } from "@/components/ui/SearchFilters";
 import { Button } from "@/components/ui/button";
+import { CertificateRequestStatusBadge } from "@/components/solicitudes-certificados/CertificateRequestStatusBadge";
+import { CertificateRequestStatusDialog } from "@/components/solicitudes-certificados/CertificateRequestStatusDialog";
 import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useCertificateRequests } from "@/hooks/use-certificate-requests";
 import { formatDateTime } from "@/lib/utils";
-import type { CertificateRequest } from "@/types/certificate-request";
+import type { CertificateRequest, CertificateRequestStatus } from "@/types/certificate-request";
 
 const CERTIFICATE_TYPE_LABELS: Record<string, string> = {
   certificadoposesion: "Certificado de Posesión",
@@ -34,10 +36,11 @@ function formatCertificateTypes(types: CertificateRequest["certificateTypes"]) {
 function CertificateRequestsContent() {
   const router = useRouter();
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
-  const { requests, loading, submitting, deleteRequest, page, setPage, limit, setLimit, search, setSearch, total } = useCertificateRequests({
+  const { requests, loading, submitting, deleteRequest, updateRequestStatus, page, setPage, limit, setLimit, search, setSearch, total } = useCertificateRequests({
     page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "",
   });
   const [selectedRequest, setSelectedRequest] = useState<CertificateRequest | null>(null);
+  const [statusDlg, setStatusDlg] = useState<CertificateRequest | null>(null);
 
   useEffect(() => {
     syncToUrl({ page: page > 1 ? page : undefined, limit: limit !== 5 ? limit : undefined, search });
@@ -80,11 +83,27 @@ function CertificateRequestsContent() {
       render: (request) => <span className="font-mono text-xs text-muted-foreground">{formatDateTime(request.createdAt)}</span>,
     },
     {
+      key: "status",
+      header: "Estado",
+      render: (request) => <CertificateRequestStatusBadge status={request.status} />,
+    },
+    {
       key: "actions",
       header: "Acciones",
-      className: "text-right w-36",
+      className: "text-right w-44",
       render: (request) => (
         <div className="flex items-center justify-end gap-1">
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 text-primary hover:text-primary"
+            title="Cambiar estado"
+            onClick={() => setStatusDlg(request)}
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span className="sr-only">Cambiar estado {request.requestNumber}</span>
+          </Button>
           <Button
             type="button"
             size="icon"
@@ -125,6 +144,18 @@ function CertificateRequestsContent() {
 
     if (success) {
       setSelectedRequest(null);
+    }
+  }
+
+  async function handleStatusChange(status: CertificateRequestStatus) {
+    if (!statusDlg) {
+      return;
+    }
+
+    const success = await updateRequestStatus(statusDlg, status);
+
+    if (success) {
+      setStatusDlg(null);
     }
   }
 
@@ -184,6 +215,14 @@ function CertificateRequestsContent() {
           submitting={submitting}
           onClose={() => setSelectedRequest(null)}
           onConfirm={handleDelete}
+        />
+
+        <CertificateRequestStatusDialog
+          open={Boolean(statusDlg)}
+          request={statusDlg}
+          submitting={submitting}
+          onClose={() => setStatusDlg(null)}
+          onConfirm={handleStatusChange}
         />
       </PageContainer>
     </AppLayout>

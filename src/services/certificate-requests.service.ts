@@ -3,6 +3,7 @@ import type { PaginatedApiResponse } from "@/types/api";
 import type {
   CertificateRequest,
   CertificateRequestPayload,
+  CertificateRequestStatusPayload,
 } from "@/types/certificate-request";
 
 export const CertificateRequestsService = {
@@ -24,6 +25,13 @@ export const CertificateRequestsService = {
   },
 
   update(id: number, payload: CertificateRequestPayload) {
+    return apiFetch<CertificateRequest>(`/api/certificate-requests/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  updateStatus(id: number, payload: CertificateRequestStatusPayload) {
     return apiFetch<CertificateRequest>(`/api/certificate-requests/${id}`, {
       method: "PUT",
       body: JSON.stringify(payload),

@@ -22,6 +22,8 @@ export interface CertificateRequestCreatedBy {
   role: string;
 }
 
+export type CertificateRequestStatus = "En Proceso" | "Observado" | "Recepcionado";
+
 export interface CertificateRequest {
   id: number;
   requestNumber: string;
@@ -34,6 +36,7 @@ export interface CertificateRequest {
   certificateTypes: CertificateRequestCertificateType[];
   exposure: string;
   attachments: CertificateRequestAttachment[];
+  status: CertificateRequestStatus;
   createdBy: CertificateRequestCreatedBy;
   legacyPayload?: unknown | null;
   createdAt: string;
@@ -50,4 +53,8 @@ export interface CertificateRequestPayload {
   certificateTypes: CertificateRequestCertificateType[];
   exposure: string;
   attachments: CertificateRequestAttachment[];
+}
+
+export interface CertificateRequestStatusPayload {
+  status: CertificateRequestStatus;
 }

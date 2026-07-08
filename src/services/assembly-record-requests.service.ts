@@ -1,6 +1,11 @@
 import { apiFetch } from "./api";
 import type { PaginatedApiResponse } from "@/types/api";
-import type { AssemblyRecordRequest, AssemblyRecordRequestPayload, AssemblyRecordRequestUpdatePayload } from "@/types/assembly-record-request";
+import type {
+  AssemblyRecordRequest,
+  AssemblyRecordRequestPayload,
+  AssemblyRecordRequestStatusPayload,
+  AssemblyRecordRequestUpdatePayload,
+} from "@/types/assembly-record-request";
 
 export const AssemblyRecordRequestsService = {
   async list({ page = 1, limit = 5, search }: { page?: number; limit?: number; search?: string } = {}) {
@@ -21,6 +26,13 @@ export const AssemblyRecordRequestsService = {
   },
 
   update(id: number, payload: AssemblyRecordRequestUpdatePayload) {
+    return apiFetch<AssemblyRecordRequest>(`/api/assembly-record-requests/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  updateStatus(id: number, payload: AssemblyRecordRequestStatusPayload) {
     return apiFetch<AssemblyRecordRequest>(`/api/assembly-record-requests/${id}`, {
       method: "PUT",
       body: JSON.stringify(payload),

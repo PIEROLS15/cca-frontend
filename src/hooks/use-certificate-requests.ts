@@ -74,6 +74,22 @@ export function useCertificateRequests(initial?: { page?: number; limit?: number
     }
   }
 
+  async function updateRequestStatus(request: CertificateRequest, status: CertificateRequest["status"]) {
+    setSubmitting(true);
+
+    try {
+      await CertificateRequestsService.updateStatus(request.id, { status });
+      await loadRequests();
+      toast.success(`Estado de ${request.requestNumber} actualizado`);
+      return true;
+    } catch (error) {
+      toast.error(getErrorMessage(error, "No se pudo actualizar el estado"));
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return {
     requests,
     loading,
@@ -87,5 +103,6 @@ export function useCertificateRequests(initial?: { page?: number; limit?: number
     total,
     totalPages,
     deleteRequest,
+    updateRequestStatus,
   };
 }
