@@ -15,6 +15,8 @@ import type { Sector } from "@/types/sector";
 import type { TerrainType } from "@/types/terrain-type";
 import type { CertificateFormState, OwnerFormState } from "@/hooks/use-certificate-form";
 
+const MAX_ADDITIONAL_NOTES_LENGTH = 120;
+
 function sectionTitle(text: string) {
   return <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{text}</h3>;
 }
@@ -341,6 +343,22 @@ export function CertificateForm({
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Colindancias por el Oeste</Label>
             <Input placeholder="Ingrese" value={form.west} onChange={(event) => onFieldChange("west", event.target.value)} />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label className="text-xs font-semibold">Notas adicionales</Label>
+            <div className="space-y-1.5">
+              <Input
+                placeholder="Ingrese"
+                value={form.additionalNotes}
+                onChange={(event) => onFieldChange("additionalNotes", event.target.value)}
+                maxLength={MAX_ADDITIONAL_NOTES_LENGTH}
+                className="w-full"
+              />
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>Máximo {MAX_ADDITIONAL_NOTES_LENGTH} caracteres.</span>
+                <span>{form.additionalNotes.length}/{MAX_ADDITIONAL_NOTES_LENGTH}</span>
+              </div>
+            </div>
           </div>
         </div>
 

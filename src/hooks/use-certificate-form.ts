@@ -14,6 +14,8 @@ import type { Certificate, CertificatePayload } from "@/types/certificate";
 import type { PersonaData } from "@/types/client";
 import type { TerrainMeasurementMode, TerrainType } from "@/types/terrain-type";
 
+const MAX_ADDITIONAL_NOTES_LENGTH = 120;
+
 export interface OwnerFormState {
   uid: string;
   id: number | null;
@@ -42,6 +44,7 @@ export interface CertificateFormState {
   south: string;
   east: string;
   west: string;
+  additionalNotes: string;
 }
 
 function createOwnerUid() {
@@ -73,6 +76,7 @@ const emptyForm: CertificateFormState = {
   south: "",
   east: "",
   west: "",
+  additionalNotes: "",
 };
 
 function toInputValue(value: number | null | undefined) {
@@ -123,6 +127,7 @@ function mapCertificateToForm(certificate: Certificate): CertificateFormState {
     south: certificate.borders.south || "",
     east: certificate.borders.east || "",
     west: certificate.borders.west || "",
+    additionalNotes: certificate.additionalNotes || "",
   };
 }
 
@@ -159,6 +164,7 @@ function buildPayload(form: CertificateFormState): CertificatePayload {
       east: form.east || null,
       west: form.west || null,
     },
+    additionalNotes: form.additionalNotes.trim() || null,
   };
 }
 
@@ -424,6 +430,11 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
 
     if (!form.sectorId) {
       toast.error("Selecciona el sector");
+      return;
+    }
+
+    if (form.additionalNotes.trim().length > MAX_ADDITIONAL_NOTES_LENGTH) {
+      toast.error(`Las notas adicionales no pueden superar ${MAX_ADDITIONAL_NOTES_LENGTH} caracteres`);
       return;
     }
 
