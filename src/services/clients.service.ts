@@ -8,6 +8,9 @@ const toClientWriteBody = (payload: ClientPayload) => ({
   address: payload.address.trim(),
   phone: payload.phone.trim(),
   isComunero: payload.clientType === "Comunero",
+  licenseSequence: payload.clientType === "Comunero" && payload.licenseSequence?.trim()
+    ? Number(payload.licenseSequence)
+    : undefined,
 });
 
 export const ClientsService = {

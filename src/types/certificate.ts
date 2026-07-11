@@ -50,6 +50,7 @@ export interface Certificate {
   borders: CertificateBorders;
   certificateNumber: string;
   requestNumber: string | null;
+  additionalNotes: string | null;
   legacyPayload?: unknown | null;
   issuedSnapshot?: unknown | null;
   status: CertificateStatus;
@@ -88,5 +89,6 @@ export interface CertificatePayload {
     east?: string | null;
     west?: string | null;
   };
+  additionalNotes?: string | null;
   status?: CertificateStatus;
 }

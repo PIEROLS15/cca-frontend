@@ -26,6 +26,8 @@ interface ClientFormDialogProps {
   mode: "create" | "edit";
   values: ClientPayload;
   submitting: boolean;
+  canEditLicenseSequence: boolean;
+  licenseSequenceLocked: boolean;
   onChange: (field: keyof ClientPayload, value: string) => void;
   onClientTypeChange: (value: ClientType) => void;
   onClose: () => void;
@@ -37,6 +39,8 @@ export function ClientFormDialog({
   mode,
   values,
   submitting,
+  canEditLicenseSequence,
+  licenseSequenceLocked,
   onChange,
   onClientTypeChange,
   onClose,
@@ -107,6 +111,24 @@ export function ClientFormDialog({
                 </SelectContent>
               </Select>
             </div>
+
+            {mode === "edit" && canEditLicenseSequence && clientTypeValue === "Comunero" && (
+              <div className="space-y-1.5">
+                <Label htmlFor="client-license-sequence">N° carnet</Label>
+                <Input
+                  id="client-license-sequence"
+                  value={values.licenseSequence ?? ""}
+                  onChange={(event) => onChange("licenseSequence", event.target.value.replace(/\D/g, ""))}
+                  placeholder="Se asignará el siguiente consecutivo"
+                  disabled={submitting || licenseSequenceLocked}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  {licenseSequenceLocked
+                    ? "Este carnet ya está asignado y no se puede modificar desde aquí."
+                    : "Solo grupo 1 puede completarlo. Si lo dejas vacío, se asignará el siguiente consecutivo disponible."}
+                </p>
+              </div>
+            )}
 
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="client-address">Dirección</Label>

@@ -79,6 +79,7 @@ export default function VerifyCertificatePage() {
                     <div className="flex items-start justify-between gap-4"><dt className="text-muted-foreground">Medidas del terreno</dt><dd className="text-right font-medium">{displayTerrainMeasure(current)}</dd></div>
                     <div className="flex items-start justify-between gap-4"><dt className="text-muted-foreground">Mz</dt><dd className="text-right font-medium">{current.mz || "—"}</dd></div>
                     <div className="flex items-start justify-between gap-4"><dt className="text-muted-foreground">Lote</dt><dd className="text-right font-medium">{current.lot || "—"}</dd></div>
+                    <div className="flex items-start justify-between gap-4"><dt className="text-muted-foreground">Notas adicionales</dt><dd className="text-right font-medium whitespace-pre-wrap">{current.additionalNotes || "—"}</dd></div>
                     <div className="flex items-start justify-between gap-4"><dt className="text-muted-foreground">Fecha Creación</dt><dd className="text-right font-medium">{formatCertificateDate(current.createdAt)}</dd></div>
                   </dl>
                 </div>
