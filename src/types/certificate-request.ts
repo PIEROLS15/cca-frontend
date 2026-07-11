@@ -3,6 +3,7 @@ export interface CertificateRequestPerson {
   searchType: string;
   fullName: string;
   documentNumber: string;
+  clientCode?: string | null;
   address: string;
   nro_licence?: string | null;
 }

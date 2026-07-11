@@ -21,6 +21,7 @@ export interface OwnerFormState {
   id: number | null;
   fullName: string;
   documentNumber: string;
+  searchByClientCode: boolean;
 }
 
 export interface CertificateFormState {
@@ -52,7 +53,7 @@ function createOwnerUid() {
 }
 
 function createEmptyOwner(): OwnerFormState {
-  return { uid: createOwnerUid(), id: null, fullName: "", documentNumber: "" };
+  return { uid: createOwnerUid(), id: null, fullName: "", documentNumber: "", searchByClientCode: false };
 }
 
 const emptyForm: CertificateFormState = {
@@ -98,11 +99,12 @@ function resolveModeForTerrainType(terrainType: TerrainType | null | undefined):
 
 function mapCertificateToForm(certificate: Certificate): CertificateFormState {
   const mappedOwners = certificate.owners?.length
-    ? certificate.owners.map((owner) => ({
+      ? certificate.owners.map((owner) => ({
         uid: owner.id ? `owner-${owner.id}` : createOwnerUid(),
         id: owner.id ?? null,
         fullName: owner.fullName || "",
         documentNumber: owner.documentNumber || "",
+        searchByClientCode: /^CLI-\d+$/i.test(owner.documentNumber || ""),
       }))
     : [createEmptyOwner()];
 
@@ -137,7 +139,7 @@ function buildPayload(form: CertificateFormState): CertificatePayload {
       .map((owner) => ({
         id: owner.id,
         fullName: owner.fullName.trim(),
-        documentNumber: owner.documentNumber.replace(/\D/g, "").trim(),
+        documentNumber: owner.documentNumber.trim(),
       }))
       .filter((owner) => owner.fullName || owner.documentNumber || owner.id != null),
     requestNumber: form.requestNumber.trim(),
@@ -170,10 +172,6 @@ function buildPayload(form: CertificateFormState): CertificatePayload {
 
 function isOwnerEmpty(owner: OwnerFormState) {
   return !owner.id && !owner.fullName.trim() && !owner.documentNumber.trim();
-}
-
-function normalizeDocumentNumber(value: string) {
-  return value.replace(/\D/g, "").trim();
 }
 
 interface UseCertificateFormOptions {
@@ -335,14 +333,16 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
     const documentNumber = owner?.documentNumber.trim();
 
     if (!documentNumber) {
-      toast.error("Ingresa el DNI del dueño");
+      toast.error(owner?.searchByClientCode ? "Ingresa el código del dueño" : "Ingresa el DNI del dueño");
       return;
     }
 
     setSearchingOwnerIndex(index);
 
     try {
-      const result = await ClientsService.searchReniec(documentNumber);
+      const result = owner?.searchByClientCode
+        ? await ClientsService.searchByDocument(documentNumber)
+        : await ClientsService.searchReniec(documentNumber);
       setOwnerSearch({ open: true, ownerIndex: index, result });
     } catch (error) {
       const message = error instanceof Error ? error.message : "No se encontró el cliente";
@@ -367,7 +367,7 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
       ...current,
       owners: current.owners.map((owner, index) => (
         index === ownerIndex
-          ? { ...owner, fullName: result.fullName, documentNumber: result.documentNumber }
+          ? { ...owner, fullName: result.fullName, documentNumber: result.documentNumber || result.clientCode || "" }
           : owner
       )),
     }));
@@ -397,14 +397,16 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
             uid: request.client.id ? `owner-${request.client.id}` : createOwnerUid(),
             id: request.client.id ?? null,
             fullName: request.client.fullName,
-            documentNumber: request.client.documentNumber,
+            documentNumber: request.client.documentNumber || request.client.clientCode || "",
+            searchByClientCode: /^CLI-\d+$/i.test(request.client.documentNumber || request.client.clientCode || ""),
           },
-          ...(request.partnerClient.documentNumber
+          ...((request.partnerClient.documentNumber || request.partnerClient.clientCode)
             ? [{
                 uid: request.partnerClient.id ? `owner-${request.partnerClient.id}` : createOwnerUid(),
                 id: request.partnerClient.id ?? null,
                 fullName: request.partnerClient.fullName,
-                documentNumber: request.partnerClient.documentNumber,
+                documentNumber: request.partnerClient.documentNumber || request.partnerClient.clientCode || "",
+                searchByClientCode: /^CLI-\d+$/i.test(request.partnerClient.documentNumber || request.partnerClient.clientCode || ""),
               }]
             : []),
           ...current.owners.slice(2),
@@ -448,11 +450,11 @@ export function useCertificateForm({ mode, certificateId }: UseCertificateFormOp
 
       for (const owner of owners) {
         if (!owner.fullName.trim()) {
-          throw new Error("Cada dueño debe tener nombres y DNI");
+          throw new Error("Cada dueño debe tener nombres y documento");
         }
 
-        if (!normalizeDocumentNumber(owner.documentNumber)) {
-          throw new Error("Cada dueño debe tener DNI");
+        if (!owner.documentNumber.trim()) {
+          throw new Error("Cada dueño debe tener documento");
         }
       }
 
