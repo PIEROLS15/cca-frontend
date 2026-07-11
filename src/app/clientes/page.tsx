@@ -15,6 +15,7 @@ import { PaginationControls } from "@/components/ui/PaginationControls";
 import { Button } from "@/components/ui/button";
 import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { useClients } from "@/hooks/use-clients";
+import { useSession } from "@/context/session-context";
 import type { Client, ClientPayload, ClientType } from "@/types/client";
 
 function createEmptyClientForm(): ClientPayload {
@@ -24,6 +25,7 @@ function createEmptyClientForm(): ClientPayload {
     address: "",
     phone: "",
     clientType: "Tercero",
+    licenseSequence: "",
   };
 }
 
@@ -31,6 +33,8 @@ type DialogMode = "create" | "edit" | "delete" | null;
 
 function ClientesContent() {
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
+  const { user } = useSession();
+  const canEditLicenseSequence = user?.role?.group === 1;
   const [documentNumber, setDocumentNumber] = useState(readParam("documentNumber") ?? "");
   const [clientType, setClientType] = useState<ClientType | "">((readParam("clientType") as ClientType | "") ?? "");
   const { clients, loading, submitting, createClient, updateClient, deleteClient, page, setPage, limit, setLimit, search, setSearch, total } = useClients({
@@ -133,6 +137,7 @@ function ClientesContent() {
       address: client.address || "",
       phone: client.phone || "",
       clientType: client.clientType,
+      licenseSequence: client.licenseSequence != null ? String(client.licenseSequence) : "",
     });
   }
 
@@ -144,6 +149,7 @@ function ClientesContent() {
   function updateField(field: keyof ClientPayload, value: string) {
     setFormValues((current) => ({
       ...current,
+      ...(field === "clientType" && value !== "Comunero" ? { licenseSequence: "" } : {}),
       [field]: value,
     }));
   }
@@ -240,6 +246,8 @@ function ClientesContent() {
           mode={dialogMode === "edit" ? "edit" : "create"}
           values={formValues}
           submitting={submitting}
+          canEditLicenseSequence={canEditLicenseSequence}
+          licenseSequenceLocked={Boolean(selectedClient?.licenseSequence != null)}
           onChange={updateField}
           onClientTypeChange={(value) => updateField("clientType", value)}
           onClose={closeDialog}

@@ -20,6 +20,7 @@ export interface CertificateVerificationSnapshot {
   additionalLength: number | null;
   mz: string | null;
   lot: string | null;
+  additionalNotes: string | null;
   createdAt: string | null;
   borders: CertificateVerificationBorders;
 }
