@@ -342,7 +342,7 @@ export function CertificateRequestForm({ mode, requestId }: CertificateRequestFo
         ...current,
         [buscarDlg.target!]: {
           fullName: data.fullName,
-          documentNumber: data.documentNumber,
+          documentNumber: data.documentNumber || data.clientCode || "",
           address: data.address,
         },
       }));
@@ -359,7 +359,7 @@ export function CertificateRequestForm({ mode, requestId }: CertificateRequestFo
         ...current,
         [agregarDlg.target!]: {
           fullName: data.fullName,
-          documentNumber: data.documentNumber,
+          documentNumber: data.documentNumber || data.clientCode || "",
           address: data.address,
         },
       }));

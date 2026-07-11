@@ -137,6 +137,16 @@ export function CertificateForm({
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Dueño {index + 1}
                   </span>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer text-muted-foreground">
+                    <Checkbox
+                      checked={owner.searchByClientCode}
+                      onCheckedChange={(checked) => {
+                        onOwnerChange(index, "searchByClientCode", checked === true);
+                        onOwnerChange(index, "documentNumber", "");
+                      }}
+                    />
+                    Buscar usuarios que no es cliente/empresa
+                  </label>
                   {form.owners.length > 1 && (
                     <Button
                       type="button"
@@ -159,16 +169,20 @@ export function CertificateForm({
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">DNI</Label>
+                    <Label className="text-xs">{owner.searchByClientCode ? "Código de cliente" : "DNI"}</Label>
                     <div className="flex gap-2">
                       <Input
                         value={owner.documentNumber}
-                        onChange={(event) => onOwnerChange(index, "documentNumber", event.target.value.replace(/\D/g, ""))}
-                        placeholder="Ingrese"
+                        onChange={(event) => onOwnerChange(
+                          index,
+                          "documentNumber",
+                          owner.searchByClientCode ? event.target.value.toUpperCase() : event.target.value.replace(/\D/g, ""),
+                        )}
+                        placeholder={owner.searchByClientCode ? "Ingrese el código" : "Ingrese"}
                         className="font-mono"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={8}
+                        inputMode={owner.searchByClientCode ? "text" : "numeric"}
+                        pattern={owner.searchByClientCode ? "[A-Za-z0-9-]*" : "[0-9]*"}
+                        maxLength={owner.searchByClientCode ? 16 : 11}
                       />
                       <Button
                         type="button"
@@ -388,8 +402,8 @@ export function CertificateForm({
                 <div className="font-medium">{ownerSearch.result.fullName}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">DNI</div>
-                <div className="font-mono">{ownerSearch.result.documentNumber}</div>
+                <div className="text-xs text-muted-foreground">DNI / Código</div>
+                <div className="font-mono">{ownerSearch.result.documentNumber || ownerSearch.result.clientCode || "—"}</div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Dirección</div>
