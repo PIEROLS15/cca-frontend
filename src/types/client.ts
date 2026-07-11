@@ -18,6 +18,7 @@ export interface Client {
   phone: string | null;
   clientType: ClientType;
   nro_licence: string | null;
+  licenseSequence: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -28,4 +29,5 @@ export interface ClientPayload {
   address: string;
   phone: string;
   clientType: ClientType;
+  licenseSequence?: string;
 }
