@@ -186,6 +186,7 @@ Antes del primer deploy crea el archivo `/opt/app/frontend/shared/.env` con la U
 
 ```bash
 NEXT_PUBLIC_API_URL=https://api.comunidadcampesina-asia.com
+NEXT_PUBLIC_TRACKING_URL=https://seguimiento.comunidadcampesina-asia.com
 FRONTEND_PORT=9000
 ```
 
