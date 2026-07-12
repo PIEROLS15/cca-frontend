@@ -74,11 +74,11 @@ export function useCertificateRequests(initial?: { page?: number; limit?: number
     }
   }
 
-  async function updateRequestStatus(request: CertificateRequest, status: CertificateRequest["status"]) {
+  async function updateRequestStatus(request: CertificateRequest, payload: { status: CertificateRequest["status"]; note?: string }) {
     setSubmitting(true);
 
     try {
-      await CertificateRequestsService.updateStatus(request.id, { status });
+      await CertificateRequestsService.updateStatus(request.id, payload);
       await loadRequests();
       toast.success(`Estado de ${request.requestNumber} actualizado`);
       return true;

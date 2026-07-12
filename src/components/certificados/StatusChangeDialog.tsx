@@ -7,17 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { CertificateStatusBadge } from "@/components/certificados/CertificateStatusBadge";
 import type { Certificate, CertificateStatus } from "@/types/certificate";
 
-const STATUS_OPTIONS: CertificateStatus[] = ["Por Firmar", "Por Recoger", "Entregado"];
+const STATUS_OPTIONS: CertificateStatus[] = ["Recepcionado", "Por Firmar", "Por Recoger", "Entregado", "Observado"];
 
 interface StatusChangeDialogProps {
   open: boolean;
   certificate: Certificate | null;
   submitting: boolean;
   onClose: () => void;
-  onConfirm: (status: CertificateStatus) => void;
+  onConfirm: (payload: { status: CertificateStatus; note?: string }) => void;
 }
 
 export function StatusChangeDialog({ open, certificate, submitting, onClose, onConfirm }: StatusChangeDialogProps) {
@@ -40,7 +41,10 @@ function StatusChangeDialogBody({
   onClose,
   onConfirm,
 }: Omit<StatusChangeDialogProps, "open">) {
-  const [newStatus, setNewStatus] = useState<CertificateStatus>(certificate?.status ?? "Por Firmar");
+  const [newStatus, setNewStatus] = useState<CertificateStatus>(certificate?.status ?? "Recepcionado");
+  const [note, setNote] = useState(certificate?.statusNote ?? "");
+  const isObserved = newStatus === "Observado";
+  const canConfirm = !submitting && (!isObserved || note.trim().length > 0);
 
   return (
     <DialogContent className="max-w-md">
@@ -76,10 +80,23 @@ function StatusChangeDialogBody({
             </SelectContent>
           </Select>
         </div>
+        {isObserved && (
+          <div className="space-y-1.5">
+            <Label htmlFor="status-note" className="text-xs">Razón</Label>
+            <Textarea
+              id="status-note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Describe por qué se observó el documento"
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground">Este campo es obligatorio al marcar como observado.</p>
+          </div>
+        )}
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>Cancelar</Button>
-        <Button onClick={() => onConfirm(newStatus)} disabled={submitting}>
+        <Button onClick={() => onConfirm({ status: newStatus, note: isObserved ? note.trim() : undefined })} disabled={!canConfirm}>
           {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
           Guardar estado
         </Button>

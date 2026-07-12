@@ -83,11 +83,11 @@ export function useCertificates(initial?: { page?: number; limit?: number; searc
     }
   }
 
-  async function updateCertificateStatus(certificate: Certificate, status: string) {
+  async function updateCertificateStatus(certificate: Certificate, payload: { status: Certificate["status"]; note?: string }) {
     setSubmitting(true);
 
     try {
-      await CertificatesService.updateStatus(certificate.id, status);
+      await CertificatesService.updateStatus(certificate.id, payload);
       await loadCertificates();
       toast.success(`Estado de ${certificate.certificateNumber} actualizado`);
       return true;

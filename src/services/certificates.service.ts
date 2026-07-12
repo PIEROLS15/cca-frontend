@@ -1,6 +1,6 @@
 import { ApiError, apiFetch, getBaseUrl } from "./api";
 import type { PaginatedApiResponse } from "@/types/api";
-import type { Certificate, CertificatePayload } from "@/types/certificate";
+import type { Certificate, CertificatePayload, CertificateStatusPayload } from "@/types/certificate";
 import type { CertificateVerificationResponse } from "@/types/certificate-verification";
 
 export const CertificatesService = {
@@ -78,10 +78,10 @@ export const CertificatesService = {
     });
   },
 
-  updateStatus(id: number, status: string) {
+  updateStatus(id: number, payload: CertificateStatusPayload) {
     return apiFetch<Certificate>(`/api/certificates/${id}`, {
       method: "PUT",
-      body: JSON.stringify({ status }),
+      body: JSON.stringify(payload),
     });
   },
 
