@@ -87,6 +87,19 @@ export default function VerifyCertificatePage() {
 
             </CardContent>
           </Card>
+
+          {!loading && verification && current && (
+            <div className="flex justify-center">
+              <a
+                href={`${process.env.NEXT_PUBLIC_TRACKING_URL}/?type=certificado&code=${encodeURIComponent(current.certificateNumber)}&tab=history`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Revisar estado
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </div>

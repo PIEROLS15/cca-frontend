@@ -4,6 +4,7 @@ services:
       context: .
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_TRACKING_URL: ${NEXT_PUBLIC_TRACKING_URL}
     ports:
       - "${FRONTEND_PORT}:9000"
     volumes:
@@ -11,4 +12,5 @@ services:
       - ./public:/app/public
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_TRACKING_URL: ${NEXT_PUBLIC_TRACKING_URL}
       HOST: "0.0.0.0"
