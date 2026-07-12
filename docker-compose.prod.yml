@@ -4,6 +4,7 @@ services:
       context: .
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_TRACKING_URL: ${NEXT_PUBLIC_TRACKING_URL}
     ports:
       - "127.0.0.1:${FRONTEND_PORT:-9000}:9000"
     restart: unless-stopped
@@ -11,5 +12,6 @@ services:
       - .env
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_TRACKING_URL: ${NEXT_PUBLIC_TRACKING_URL}
       PORT: 9000
       HOST: 0.0.0.0
