@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -26,6 +27,7 @@ interface ClienteForm {
   address: string;
   phone: string;
   clientType: string;
+  noDocument: boolean;
 }
 
 const emptyForm: ClienteForm = {
@@ -34,6 +36,7 @@ const emptyForm: ClienteForm = {
   address: "",
   phone: "",
   clientType: "Tercero",
+  noDocument: false,
 };
 
 export function AgregarClienteDialog({ open, title, onClose, onAccept }: AgregarClienteDialogProps) {
@@ -49,11 +52,19 @@ function AgregarClienteDialogBody({ title, onClose, onAccept }: Omit<AgregarClie
   const [submitting, setSubmitting] = useState(false);
 
   function updateField(field: keyof ClienteForm, value: string) {
-    setForm((current) => ({ ...current, [field]: field === "documentNumber" ? value.replace(/\D/g, "") : value }));
+    setForm((current) => ({ ...current, [field]: field === "documentNumber" && !current.noDocument ? value.replace(/\D/g, "") : value }));
+  }
+
+  function updateNoDocument(value: boolean) {
+    setForm((current) => ({
+      ...current,
+      noDocument: value,
+      documentNumber: value ? "" : current.documentNumber,
+    }));
   }
 
   function isValid() {
-    return form.fullName.trim() && form.documentNumber.trim() && form.clientType;
+    return form.fullName.trim() && form.clientType && (form.noDocument || form.documentNumber.trim());
   }
 
   async function handleSubmit() {
@@ -68,11 +79,13 @@ function AgregarClienteDialogBody({ title, onClose, onAccept }: Omit<AgregarClie
         address: form.address.trim(),
         phone: form.phone.trim(),
         clientType: form.clientType as "Comunero" | "Tercero",
+        noDocument: form.noDocument,
       });
 
       onAccept({
         fullName: client.fullName,
-        documentNumber: client.documentNumber,
+        documentNumber: client.documentNumber || client.clientCode || "",
+        clientCode: client.clientCode || null,
         address: client.address || "",
       });
 
@@ -112,7 +125,12 @@ function AgregarClienteDialogBody({ title, onClose, onAccept }: Omit<AgregarClie
             onChange={(e) => updateField("documentNumber", e.target.value)}
             placeholder="Documento"
             maxLength={11}
+            disabled={form.noDocument}
           />
+          <div className="flex items-center gap-2 pt-1">
+            <Checkbox checked={form.noDocument} onCheckedChange={(checked) => updateNoDocument(checked === true)} />
+            <span className="text-xs text-muted-foreground">No es persona/empresa</span>
+          </div>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="agregar-clientType" className="text-xs">Tipo de cliente</Label>

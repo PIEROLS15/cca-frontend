@@ -4,10 +4,11 @@ import type { Client, ClientLookupResult, ClientPayload, ClientType, PersonaData
 
 const toClientWriteBody = (payload: ClientPayload) => ({
   fullName: payload.fullName.trim(),
-  documentNumber: payload.documentNumber.trim(),
+  documentNumber: payload.noDocument ? null : payload.documentNumber.trim(),
   address: payload.address.trim(),
   phone: payload.phone.trim(),
   isComunero: payload.clientType === "Comunero",
+  noDocument: payload.noDocument,
   licenseSequence: payload.clientType === "Comunero" && payload.licenseSequence?.trim()
     ? Number(payload.licenseSequence)
     : undefined,
@@ -46,7 +47,8 @@ export const ClientsService = {
     return apiFetch<Client>(`/api/clients/search/${encodeURIComponent(document)}`).then<ClientLookupResult>((client) => ({
       id: client.id,
       fullName: client.fullName,
-      documentNumber: client.documentNumber,
+      documentNumber: client.documentNumber || client.clientCode || "",
+      clientCode: client.clientCode,
       address: client.address ?? "",
     }));
   },

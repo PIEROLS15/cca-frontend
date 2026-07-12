@@ -43,7 +43,7 @@ export function useAppLayout() {
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.push("/login");
+      router.replace("/login");
     }
   }, [loading, isAuthenticated, router]);
 
@@ -79,7 +79,7 @@ export function useAppLayout() {
 
   const handleLogout = async () => {
     await logout();
-    router.push("/login");
+    router.replace("/login");
   };
 
   const goToProfile = () => {

@@ -20,7 +20,7 @@ interface BuscarPersonaDialogProps {
 
 export function BuscarPersonaDialog({ open, source, onClose, onAccept }: BuscarPersonaDialogProps) {
   const title = source === "comunidad" ? "Buscar en Comunidad" : "Buscar en SUNAT / RENIEC";
-  const placeholder = source === "comunidad" ? "Buscar por DNI / RUC..." : "Ej. 12345678";
+  const placeholder = source === "comunidad" ? "Buscar por DNI / RUC / código..." : "Ej. 12345678";
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -73,21 +73,23 @@ function BuscarPersonaDialogBody({
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>
-          Ingrese el DNI / RUC para consultar los datos.
+          Ingrese el DNI / RUC o código para consultar los datos.
         </DialogDescription>
       </DialogHeader>
 
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <Label htmlFor="search-doc" className="text-xs">DNI / RUC</Label>
+          <Label htmlFor="search-doc" className="text-xs">DNI / RUC / Código</Label>
           <div className="flex gap-2">
             <Input
               id="search-doc"
               placeholder={placeholder}
               value={doc}
-              onChange={(e) => setDoc(e.target.value.replace(/\D/g, ""))}
+              onChange={(e) => setDoc(source === "comunidad" ? e.target.value.toUpperCase() : e.target.value.replace(/\D/g, ""))}
               onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
-              maxLength={source === "comunidad" ? 11 : 8}
+              maxLength={source === "comunidad" ? 16 : 8}
+              inputMode={source === "comunidad" ? "text" : "numeric"}
+              pattern={source === "comunidad" ? "[A-Za-z0-9-]*" : "[0-9]*"}
               autoFocus
             />
             <Button onClick={handleSearch} disabled={loading || !doc.trim()} className="gap-1.5">
@@ -104,7 +106,7 @@ function BuscarPersonaDialogBody({
               <div className="font-medium">{result.fullName}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">DNI / RUC</div>
+              <div className="text-xs text-muted-foreground">DNI / RUC / Código</div>
               <div className="font-mono">{result.documentNumber}</div>
             </div>
             <div>

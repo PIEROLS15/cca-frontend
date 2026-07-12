@@ -26,6 +26,7 @@ function createEmptyClientForm(): ClientPayload {
     phone: "",
     clientType: "Tercero",
     licenseSequence: "",
+    noDocument: false,
   };
 }
 
@@ -77,8 +78,8 @@ function ClientesContent() {
     },
     {
       key: "documentNumber",
-      header: "DNI/RUC",
-      render: (client) => <span className="font-mono text-xs">{client.documentNumber}</span>,
+      header: "DNI/RUC o código",
+      render: (client) => <span className="font-mono text-xs">{client.documentNumber || client.clientCode || "-"}</span>,
     },
     {
       key: "address",
@@ -133,11 +134,12 @@ function ClientesContent() {
     setSelectedClient(client);
     setFormValues({
       fullName: client.fullName,
-      documentNumber: client.documentNumber,
+      documentNumber: client.documentNumber || "",
       address: client.address || "",
       phone: client.phone || "",
       clientType: client.clientType,
       licenseSequence: client.licenseSequence != null ? String(client.licenseSequence) : "",
+      noDocument: client.documentNumber == null,
     });
   }
 
@@ -154,11 +156,24 @@ function ClientesContent() {
     }));
   }
 
+  function updateNoDocument(value: boolean) {
+    setFormValues((current) => ({
+      ...current,
+      noDocument: value,
+      documentNumber: value ? "" : current.documentNumber,
+    }));
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!formValues.fullName.trim() || !formValues.documentNumber.trim()) {
-      toast.error("Completa nombre y documento del cliente");
+    if (!formValues.fullName.trim()) {
+      toast.error("Completa el nombre del cliente");
+      return;
+    }
+
+    if (!formValues.noDocument && !formValues.documentNumber.trim()) {
+      toast.error("Completa el DNI/RUC del cliente o marca que no tiene documento");
       return;
     }
 
@@ -250,6 +265,7 @@ function ClientesContent() {
           licenseSequenceLocked={Boolean(selectedClient?.licenseSequence != null)}
           onChange={updateField}
           onClientTypeChange={(value) => updateField("clientType", value)}
+          onNoDocumentChange={updateNoDocument}
           onClose={closeDialog}
           onSubmit={handleSubmit}
         />

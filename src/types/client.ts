@@ -1,6 +1,7 @@
 export interface PersonaData {
   fullName: string;
   documentNumber: string;
+  clientCode?: string | null;
   address: string;
 }
 
@@ -13,7 +14,8 @@ export type ClientType = "Comunero" | "Tercero";
 export interface Client {
   id: number;
   fullName: string;
-  documentNumber: string;
+  documentNumber: string | null;
+  clientCode: string | null;
   address: string | null;
   phone: string | null;
   clientType: ClientType;
@@ -30,4 +32,5 @@ export interface ClientPayload {
   phone: string;
   clientType: ClientType;
   licenseSequence?: string;
+  noDocument: boolean;
 }

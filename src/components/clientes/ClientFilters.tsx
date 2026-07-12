@@ -36,7 +36,7 @@ export function ClientFilters({
       placeholder="Nombre del cliente..."
     >
       <Input
-        placeholder="DNI / RUC"
+        placeholder="DNI / RUC / código"
         value={documentNumber}
         onChange={(event) => onDocumentNumberChange(event.target.value)}
         className="lg:w-44"

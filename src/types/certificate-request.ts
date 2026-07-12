@@ -3,6 +3,7 @@ export interface CertificateRequestPerson {
   searchType: string;
   fullName: string;
   documentNumber: string;
+  clientCode?: string | null;
   address: string;
   nro_licence?: string | null;
 }
@@ -22,7 +23,7 @@ export interface CertificateRequestCreatedBy {
   role: string;
 }
 
-export type CertificateRequestStatus = "En Proceso" | "Observado" | "Recepcionado";
+export type CertificateRequestStatus = "Recepcionado" | "Por Firmar" | "Por Recoger" | "Entregado" | "Observado";
 
 export interface CertificateRequest {
   id: number;
@@ -37,6 +38,7 @@ export interface CertificateRequest {
   exposure: string;
   attachments: CertificateRequestAttachment[];
   status: CertificateRequestStatus;
+  statusNote?: string | null;
   createdBy: CertificateRequestCreatedBy;
   legacyPayload?: unknown | null;
   createdAt: string;
@@ -57,4 +59,5 @@ export interface CertificateRequestPayload {
 
 export interface CertificateRequestStatusPayload {
   status: CertificateRequestStatus;
+  note?: string;
 }

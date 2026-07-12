@@ -147,12 +147,12 @@ function CertificateRequestsContent() {
     }
   }
 
-  async function handleStatusChange(status: CertificateRequestStatus) {
+  async function handleStatusChange(payload: { status: CertificateRequestStatus; note?: string }) {
     if (!statusDlg) {
       return;
     }
 
-    const success = await updateRequestStatus(statusDlg, status);
+    const success = await updateRequestStatus(statusDlg, payload);
 
     if (success) {
       setStatusDlg(null);

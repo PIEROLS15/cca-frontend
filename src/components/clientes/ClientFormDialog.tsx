@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -30,6 +31,7 @@ interface ClientFormDialogProps {
   licenseSequenceLocked: boolean;
   onChange: (field: keyof ClientPayload, value: string) => void;
   onClientTypeChange: (value: ClientType) => void;
+  onNoDocumentChange: (value: boolean) => void;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }
@@ -43,6 +45,7 @@ export function ClientFormDialog({
   licenseSequenceLocked,
   onChange,
   onClientTypeChange,
+  onNoDocumentChange,
   onClose,
   onSubmit,
 }: ClientFormDialogProps) {
@@ -80,8 +83,21 @@ export function ClientFormDialog({
                 value={values.documentNumber}
                 onChange={(event) => onChange("documentNumber", event.target.value)}
                 placeholder="Ej. 12345678"
-                disabled={submitting}
+                disabled={submitting || values.noDocument}
               />
+              <div className="flex items-center gap-2 pt-1">
+                <Checkbox
+                  checked={values.noDocument}
+                  onCheckedChange={(checked) => onNoDocumentChange(checked === true)}
+                  disabled={submitting}
+                />
+                <span className="text-xs text-muted-foreground">No es persona/empresa</span>
+              </div>
+              {values.noDocument && (
+                <p className="text-[11px] text-muted-foreground">
+                  Se generará automáticamente un código de cliente.
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">

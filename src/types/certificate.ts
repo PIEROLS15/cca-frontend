@@ -1,4 +1,4 @@
-export type CertificateStatus = "Por Firmar" | "Por Recoger" | "Entregado";
+export type CertificateStatus = "Recepcionado" | "Por Firmar" | "Por Recoger" | "Entregado" | "Observado";
 
 import type { TerrainMeasurementMode, TerrainType } from "./terrain-type";
 
@@ -51,6 +51,7 @@ export interface Certificate {
   certificateNumber: string;
   requestNumber: string | null;
   additionalNotes: string | null;
+  statusNote?: string | null;
   legacyPayload?: unknown | null;
   issuedSnapshot?: unknown | null;
   status: CertificateStatus;
@@ -91,4 +92,9 @@ export interface CertificatePayload {
   };
   additionalNotes?: string | null;
   status?: CertificateStatus;
+}
+
+export interface CertificateStatusPayload {
+  status: CertificateStatus;
+  note?: string;
 }

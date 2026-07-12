@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageLoader } from "@/components/ui/PageLoader";
@@ -18,6 +18,7 @@ import type { DateRange } from "react-day-picker";
 
 export default function DashboardPage() {
   const { user, isAuthenticated, loading } = useSession();
+  const router = useRouter();
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [statusBreakdown, setStatusBreakdown] = useState<StatusBreakdownItem[]>([]);
@@ -53,10 +54,16 @@ export default function DashboardPage() {
       .finally(() => setActividadLoaded(true));
   }, [isAuthenticated, actividadRange]);
 
+  useEffect(() => {
+    if (!loading && (!isAuthenticated || !user)) {
+      router.replace("/login");
+    }
+  }, [loading, isAuthenticated, user, router]);
+
   if (loading) return <PageLoader />;
 
   if (!isAuthenticated || !user) {
-    redirect("/login");
+    return null;
   }
 
   return (
