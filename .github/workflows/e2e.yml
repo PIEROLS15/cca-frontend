@@ -1,0 +1,51 @@
+name: Frontend E2E
+
+on:
+  workflow_dispatch:
+
+jobs:
+  playwright:
+    name: Playwright against VPS test env
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install chromium
+
+      - name: Start SSH tunnel to VPS test frontend
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_TEST_SSH_KEY }}
+
+      - name: Trust VPS host
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.VPS_TEST_PORT }}" -H "${{ secrets.VPS_TEST_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Open tunnel
+        run: |
+          ssh -fN -p "${{ secrets.VPS_TEST_PORT }}" -L 9100:127.0.0.1:9100 "${{ secrets.VPS_TEST_USER }}@${{ secrets.VPS_TEST_HOST }}"
+
+      - name: Run Playwright
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:9100
+          E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: pnpm test:e2e

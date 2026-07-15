@@ -164,6 +164,36 @@ Esto levanta el frontend en el puerto definido por `FRONTEND_PORT`.
 docker compose up -d --build frontend
 ```
 
+### Pruebas con Docker
+
+Para validar el frontend contra el backend de pruebas:
+
+Antes de ejecutarlo, crea `.env` desde `.env.example` y completa la seccion de test.
+
+```bash
+docker compose --env-file .env -p cca-frontend-test -f docker-compose.test.yml up -d --build frontend
+pnpm test:e2e
+```
+
+Antes de correr `Playwright`, asegúrate de tener arriba el backend de test en `9101`.
+El archivo `.env` se carga automaticamente desde `playwright.config.ts`, asi que no hace falta exportar `FRONTEND_TEST_URL` a mano.
+`pnpm test:e2e` ejecuta Playwright; ya no hay tests unitarios en este frontend.
+
+Para limpiar el entorno de pruebas:
+
+```bash
+docker compose --env-file .env -p cca-frontend-test -f docker-compose.test.yml down
+```
+
+El script `deploy/test/deploy.sh` automatiza ese flujo en el VPS.
+
+### Modo visual de Playwright
+
+```bash
+pnpm exec playwright test --debug
+pnpm exec playwright codegen http://127.0.0.1:9100/login
+```
+
 ### Detener contenedores
 
 ```bash
