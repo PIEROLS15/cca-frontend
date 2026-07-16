@@ -191,6 +191,9 @@ El script `deploy/test/deploy.sh` automatiza ese flujo en el VPS.
 
 ```bash
 pnpm exec playwright test --debug
+pnpm exec playwright test tests/e2e/auth/login.spec.ts --debug
+pnpm exec playwright test tests/e2e/auth --debug
+pnpm exec playwright test -g "logout user and return to login" --debug
 pnpm exec playwright codegen http://127.0.0.1:9100/login
 ```
 
