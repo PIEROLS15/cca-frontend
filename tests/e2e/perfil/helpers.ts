@@ -4,33 +4,50 @@ import { goToProfile, loginAsSeededUser, logoutUser } from "../auth/session";
 
 interface ProfileRestoreContext {
   page: Page;
-  emailInput: Locator;
-  originalEmail: string;
+  input: Locator;
+  originalValue: string;
+}
+
+interface ProfileRestoreOptions {
+  login?: (page: Page) => Promise<void>;
+}
+
+export async function withProfileFieldRestore(
+  page: Page,
+  label: string,
+  fn: (context: ProfileRestoreContext) => Promise<void>,
+  options: ProfileRestoreOptions = {}
+) {
+  const login = options.login ?? loginAsSeededUser;
+
+  await login(page);
+  await goToProfile(page);
+
+  const input = page.getByLabel(label, { exact: true });
+  const originalValue = await input.inputValue();
+
+  try {
+    await fn({ page, input, originalValue });
+  } finally {
+    await login(page);
+    await goToProfile(page);
+
+    const restoreInput = page.getByLabel(label, { exact: true });
+    if ((await restoreInput.inputValue()) !== originalValue) {
+      await restoreInput.fill(originalValue);
+      await page.getByRole("button", { name: "Guardar cambios" }).click();
+      await expect(restoreInput).toHaveValue(originalValue);
+    }
+
+    await logoutUser(page);
+  }
 }
 
 export async function withProfileRestore(
   page: Page,
   fn: (context: ProfileRestoreContext) => Promise<void>
 ) {
-  await loginAsSeededUser(page);
-  await goToProfile(page);
-
-  const emailInput = page.getByLabel("Correo electrónico");
-  const originalEmail = await emailInput.inputValue();
-
-  try {
-    await fn({ page, emailInput, originalEmail });
-  } finally {
-    await loginAsSeededUser(page);
-    await goToProfile(page);
-
-    const restoreEmailInput = page.getByLabel("Correo electrónico");
-    if ((await restoreEmailInput.inputValue()) !== originalEmail) {
-      await restoreEmailInput.fill(originalEmail);
-      await page.getByRole("button", { name: "Guardar cambios" }).click();
-      await expect(restoreEmailInput).toHaveValue(originalEmail);
-    }
-
-    await logoutUser(page);
-  }
+  await withProfileFieldRestore(page, "Correo electrónico", async ({ page: profilePage, input, originalValue }) => {
+    await fn({ page: profilePage, input, originalValue });
+  });
 }

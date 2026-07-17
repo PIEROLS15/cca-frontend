@@ -1,37 +1,15 @@
-import { expect, type Page } from "@playwright/test";
-import { authenticatedTest, goToProfile, loginAsSeededUser, logoutUser } from "../auth/session";
+import { expect, test } from "@playwright/test";
 
-async function logoutFlexible(page: Page) {
-  await page.locator("button").filter({ has: page.locator(".rounded-full") }).first().click();
-  await page.getByRole("menuitem", { name: "Cerrar sesión" }).click();
-  await expect(page).toHaveURL(/\/login$/);
-}
+import { withProfileFieldRestore } from "./helpers";
 
-authenticatedTest("edit profile full name, relogin and restore it", async ({ authenticatedPage: page }) => {
-  await goToProfile(page);
+test("edit profile full name, relogin and restore it", async ({ page }) => {
+  await withProfileFieldRestore(page, "Nombre completo", async ({ page: profilePage, input }) => {
+    await input.fill("Piero Test Updated");
+    await profilePage.getByRole("button", { name: "Guardar cambios" }).click();
+    await expect(input).toHaveValue("Piero Test Updated");
 
-  const fullNameInput = page.getByLabel("Nombre completo");
-  const originalName = await fullNameInput.inputValue();
-
-  await fullNameInput.fill("Piero Test Updated");
-  await page.getByRole("button", { name: "Guardar cambios" }).click();
-  await expect(fullNameInput).toHaveValue("Piero Test Updated");
-
-  await logoutFlexible(page);
-  await loginAsSeededUser(page);
-
-  await page.goto("/perfil");
-  await expect(page.getByRole("heading", { name: "Mi perfil" })).toBeVisible();
-  await expect(page.getByLabel("Nombre completo")).toHaveValue("Piero Test Updated");
-
-  await page.getByLabel("Nombre completo").fill(originalName);
-  await page.getByRole("button", { name: "Guardar cambios" }).click();
-  await expect(page.getByLabel("Nombre completo")).toHaveValue(originalName);
-
-  await logoutUser(page);
-  await loginAsSeededUser(page);
-  await goToProfile(page);
-
-  await expect(page.getByLabel("Nombre completo")).toHaveValue(originalName);
-  await logoutUser(page);
+    await profilePage.goto("/perfil");
+    await expect(profilePage.getByRole("heading", { name: "Mi perfil" })).toBeVisible();
+    await expect(profilePage.getByLabel("Nombre completo")).toHaveValue("Piero Test Updated");
+  });
 });

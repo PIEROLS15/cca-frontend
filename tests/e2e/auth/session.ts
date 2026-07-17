@@ -12,12 +12,16 @@ function requireEnv(name: string) {
 }
 
 export async function loginAsSeededUser(page: Page) {
+  await loginWithCredentials(page, requireEnv("E2E_USERNAME"), requireEnv("E2E_PASSWORD"));
+}
+
+export async function loginWithCredentials(page: Page, username: string, password: string) {
   await page.goto("/login");
 
   await expect(page.getByRole("button", { name: "Iniciar sesión" })).toBeVisible();
 
-  await page.getByLabel("Usuario").fill(requireEnv("E2E_USERNAME"));
-  await page.getByLabel("Contraseña").fill(requireEnv("E2E_PASSWORD"));
+  await page.getByLabel("Usuario").fill(username);
+  await page.getByLabel("Contraseña").fill(password);
   await page.getByRole("button", { name: "Iniciar sesión" }).click();
 
   await expect(page).toHaveURL(/\/$/);
@@ -25,7 +29,7 @@ export async function loginAsSeededUser(page: Page) {
 }
 
 export async function openUserMenu(page: Page) {
-  await page.getByRole("button", { name: "Piero Admin PD" }).click();
+  await page.getByRole("button", { name: /Admin/ }).click();
 }
 
 export async function goToProfile(page: Page) {

@@ -1,8 +1,11 @@
-import { expect } from "@playwright/test";
-import { authenticatedTest, goToProfile, loginAsSeededUser, logoutUser } from "../auth/session";
+import { expect, test } from "@playwright/test";
 
-authenticatedTest("change password, relogin and restore original", async ({ authenticatedPage: page }) => {
-  await goToProfile(page);
+import { loginWithCredentials, logoutUser } from "../auth/session";
+
+test("change password, relogin and restore original", async ({ page }) => {
+  await loginWithCredentials(page, "pierols", "123456");
+  await page.goto("/perfil");
+  await expect(page.getByRole("heading", { name: "Mi perfil" })).toBeVisible();
 
   await page.getByLabel("Contraseña actual").fill("123456");
   await page.getByRole("button", { name: "Verificar" }).click();
@@ -13,14 +16,9 @@ authenticatedTest("change password, relogin and restore original", async ({ auth
   await page.getByRole("button", { name: "Actualizar contraseña" }).click();
 
   await logoutUser(page);
-
-  await page.goto("/login");
-  await page.getByLabel("Usuario").fill("pierols");
-  await page.getByLabel("Contraseña").fill("nueva123456");
-  await page.getByRole("button", { name: "Iniciar sesión" }).click();
-  await expect(page).toHaveURL(/\/$/);
-
-  await goToProfile(page);
+  await loginWithCredentials(page, "pierols", "nueva123456");
+  await page.goto("/perfil");
+  await expect(page.getByRole("heading", { name: "Mi perfil" })).toBeVisible();
 
   await page.getByLabel("Contraseña actual").fill("nueva123456");
   await page.getByRole("button", { name: "Verificar" }).click();
@@ -31,12 +29,6 @@ authenticatedTest("change password, relogin and restore original", async ({ auth
   await page.getByRole("button", { name: "Actualizar contraseña" }).click();
 
   await logoutUser(page);
-
-  await page.goto("/login");
-  await page.getByLabel("Usuario").fill("pierols");
-  await page.getByLabel("Contraseña").fill("123456");
-  await page.getByRole("button", { name: "Iniciar sesión" }).click();
-  await expect(page).toHaveURL(/\/$/);
-
+  await loginWithCredentials(page, "pierols", "123456");
   await logoutUser(page);
 });

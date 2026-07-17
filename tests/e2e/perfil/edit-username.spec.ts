@@ -1,42 +1,28 @@
-import { expect, type Page } from "@playwright/test";
-import { authenticatedTest, goToProfile, loginAsSeededUser, logoutUser } from "../auth/session";
+import { expect, test } from "@playwright/test";
 
-async function loginAs(page: Page, username: string, password: string) {
-  await page.goto("/login");
-  await page.getByLabel("Usuario").fill(username);
-  await page.getByLabel("Contraseña").fill(password);
-  await page.getByRole("button", { name: "Iniciar sesión" }).click();
-  await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByText("Panel general")).toBeVisible({ timeout: 30000 });
-}
+import { loginWithCredentials, logoutUser } from "../auth/session";
+import { withProfileFieldRestore } from "./helpers";
 
-authenticatedTest("edit profile username, relogin and restore it", async ({ authenticatedPage: page }) => {
-  await goToProfile(page);
+test("edit profile username, relogin and restore it", async ({ page }) => {
+  let currentUsername = "pierols";
 
-  const usernameInput = page.getByLabel("Nombre de usuario");
-  const originalUsername = await usernameInput.inputValue();
+  await withProfileFieldRestore(page, "Nombre de usuario", async ({ page: profilePage, input }) => {
+    currentUsername = "pierols_updated";
 
-  await usernameInput.fill("pierols_updated");
-  await page.getByRole("button", { name: "Guardar cambios" }).click();
-  await expect(page.getByText("Perfil actualizado")).toBeVisible({ timeout: 10000 });
-  await expect(usernameInput).toHaveValue("pierols_updated");
+    await input.fill(currentUsername);
+    await profilePage.getByRole("button", { name: "Guardar cambios" }).click();
+    await expect(profilePage.getByText("Perfil actualizado")).toBeVisible({ timeout: 10000 });
+    await expect(input).toHaveValue(currentUsername);
 
-  await logoutUser(page);
-  await loginAs(page, "pierols_updated", "123456");
+    await logoutUser(profilePage);
+    await loginWithCredentials(profilePage, currentUsername, "123456");
 
-  await page.goto("/perfil");
-  await expect(page.getByRole("heading", { name: "Mi perfil" })).toBeVisible();
-  await expect(page.getByLabel("Nombre de usuario")).toHaveValue("pierols_updated");
-
-  await page.getByLabel("Nombre de usuario").fill(originalUsername);
-  await page.getByRole("button", { name: "Guardar cambios" }).click();
-  await expect(page.getByText("Perfil actualizado")).toBeVisible({ timeout: 10000 });
-  await expect(page.getByLabel("Nombre de usuario")).toHaveValue(originalUsername);
-
-  await logoutUser(page);
-  await loginAsSeededUser(page);
-  await goToProfile(page);
-
-  await expect(page.getByLabel("Nombre de usuario")).toHaveValue(originalUsername);
-  await logoutUser(page);
+    await profilePage.goto("/perfil");
+    await expect(profilePage.getByRole("heading", { name: "Mi perfil" })).toBeVisible();
+    await expect(profilePage.getByLabel("Nombre de usuario")).toHaveValue(currentUsername);
+  }, {
+    login: async (profilePage) => {
+      await loginWithCredentials(profilePage, currentUsername, "123456");
+    },
+  });
 });
