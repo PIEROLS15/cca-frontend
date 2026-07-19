@@ -1,8 +1,5 @@
 import { test, expect } from "@playwright/test";
-import {
-  goToSolicitudesActa,
-  deleteAssemblyRecordIfVisible,
-} from "./helpers";
+import { goToSolicitudesActa } from "./helpers";
 
 test.describe("Create assembly record request", () => {
   test("create a new request and navigate to PDF", async ({ page }) => {

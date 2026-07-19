@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-import { goToComuneros, searchComunero, expectComuneroVisible } from "./helpers";
+import { goToComuneros, searchComunero } from "./helpers";
 
 test.describe("Search comunero by DNI", () => {
   test("find comunero by DNI", async ({ page }) => {

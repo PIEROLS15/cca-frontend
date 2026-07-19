@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test } from "@playwright/test";
 
 import { createClient, deleteClientIfVisible, expectClientNotVisible, expectClientVisible, goToClientes, searchClientByName } from "./helpers";
 import type { ClientPayload } from "@/types/client";

@@ -3,7 +3,6 @@ import {
   goToSolicitudesActa,
   searchAssemblyRecord,
   clearAssemblyRecordSearch,
-  expectAssemblyRecordVisible,
 } from "./helpers";
 
 test.describe("Search assembly record by certificate code", () => {

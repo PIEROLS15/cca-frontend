@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-import { clearUserSearch, createUser, deactivateUserIfActive, expectUserVisible, goToUsuarios, searchUser, toggleUserStatus } from "./helpers";
+import { createUser, deactivateUserIfActive, expectUserVisible, goToUsuarios, searchUser, toggleUserStatus } from "./helpers";
 import type { UserPayload } from "@/types/user";
 
 function uniquePayload(): UserPayload {

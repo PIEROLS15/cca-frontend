@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { goToCertificados, searchCertificate, expectCertificateVisible } from "./helpers";
+import { goToCertificados } from "./helpers";
 
 test.describe("Download certificates report", () => {
   test("report endpoint returns valid response", async ({ page }) => {
