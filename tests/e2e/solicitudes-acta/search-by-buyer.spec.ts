@@ -9,11 +9,15 @@ test.describe("Search assembly record by buyer", () => {
   test("filter by buyer name reduces results", async ({ page }) => {
     await goToSolicitudesActa(page);
 
-    const countBefore = await page.getByRole("row").count();
+    const rows = page.locator("tbody tr");
+    const countBefore = await rows.count();
 
+    const responsePromise = page.waitForResponse(
+      (response) => response.request().method() === "GET" && response.url().includes("/api/assembly-record-requests")
+    );
     await searchAssemblyRecord(page, "CARLOS ARMANDO");
+    await responsePromise;
 
-    const rows = page.getByRole("row");
     await expect(rows.first()).toBeVisible();
     expect(await rows.count()).toBeLessThan(countBefore);
 

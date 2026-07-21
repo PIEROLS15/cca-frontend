@@ -1,6 +1,6 @@
 import { test } from "@playwright/test";
 
-import { goToComuneros, searchComunero } from "./helpers";
+import { expectComuneroVisible, goToComuneros, searchComunero } from "./helpers";
 
 test.describe("Search comunero by client code", () => {
   test("find comunero by client code", async ({ page }) => {
