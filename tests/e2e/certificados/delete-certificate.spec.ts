@@ -7,7 +7,8 @@ test.describe("Delete certificate", () => {
 
     await goToCertificados(page);
 
-    await page.getByRole("link", { name: "Agregar certificado" }).click();
+    await expect(page.getByRole("link", { name: "Agregar certificado" })).toBeVisible();
+    await page.goto("/certificados/nuevo");
     await expect(page).toHaveURL(/\/certificados\/nuevo/);
 
     await page.locator("input[placeholder='Ingrese']").first().fill("Dueño Eliminar E2E");

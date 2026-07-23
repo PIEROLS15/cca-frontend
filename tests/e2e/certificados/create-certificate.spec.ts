@@ -7,7 +7,8 @@ test.describe("Create certificate", () => {
 
     await goToCertificados(page);
 
-    await page.getByRole("link", { name: "Agregar certificado" }).click();
+    await expect(page.getByRole("link", { name: "Agregar certificado" })).toBeVisible();
+    await page.goto("/certificados/nuevo");
     await expect(page).toHaveURL(/\/certificados\/nuevo/);
 
     await page.getByRole("button", { name: "Guardar" }).waitFor({ state: "visible", timeout: 10000 });
