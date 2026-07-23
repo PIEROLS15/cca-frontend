@@ -48,7 +48,4 @@ if ! wait_for_http "http://127.0.0.1:${FRONTEND_TEST_PORT:-9100}/api/health"; th
   fail "El frontend de pruebas no pasó healthcheck"
 fi
 
-log "Ejecutando Playwright"
-pnpm test:e2e
-
 log "Despliegue de pruebas completado"
