@@ -30,6 +30,7 @@ export interface UserPayload {
   email: string;
   dni: string;
   roleId: number;
+  roleName?: string;
   certificateRangeStart?: number | null;
   certificateRangeEnd?: number | null;
 }
