@@ -19,7 +19,10 @@ test.describe("Search assembly record by buyer", () => {
     await responsePromise;
 
     await expect(rows.first()).toBeVisible();
-    expect(await rows.count()).toBeLessThan(countBefore);
+    expect(await rows.count()).toBeGreaterThan(0);
+    if (countBefore > 1) {
+      expect(await rows.count()).toBeLessThan(countBefore);
+    }
 
     await clearAssemblyRecordSearch(page);
     await expect(
