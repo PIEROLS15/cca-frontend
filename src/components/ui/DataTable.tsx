@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 
 export interface DataTableColumn<T> {
   key: string;
-  header: string;
+  header: ReactNode;
   className?: string;
   render?: (row: T) => ReactNode;
 }
@@ -17,6 +17,7 @@ interface DataTableProps<T> {
   loading?: boolean;
   loadingText?: string;
   emptyText?: string;
+  footer?: ReactNode;
 }
 
 export function DataTable<T>({
@@ -26,6 +27,7 @@ export function DataTable<T>({
   loading = false,
   loadingText = "Cargando...",
   emptyText = "Sin resultados",
+  footer,
 }: DataTableProps<T>) {
   return (
     <Card className="overflow-hidden p-0">
@@ -80,6 +82,7 @@ export function DataTable<T>({
           </tbody>
         </table>
       </div>
+      {footer}
     </Card>
   );
 }
