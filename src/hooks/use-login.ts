@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthService } from "@/services/auth.service";
 import { useSession } from "@/context/session-context";
+import { getFirstAccessibleRoute } from "@/lib/access-control";
 
 export function useLogin() {
   const router = useRouter();
@@ -28,7 +29,7 @@ export function useLogin() {
       setLoading(true);
       const response = await AuthService.login({ username, password });
       setSession(response.user);
-      const redirectTo = searchParams.get("redirect") || "/";
+      const redirectTo = searchParams.get("redirect") || getFirstAccessibleRoute(response.user) || "/";
       router.push(redirectTo);
     } catch (error: unknown) {
       const message =

@@ -11,6 +11,7 @@ import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
 import { MonthlyActivityCard } from "@/components/dashboard/MonthlyActivityCard";
 import { useSession } from "@/context/session-context";
 import { DashboardService } from "@/services/dashboard.service";
+import { canAccessModule, getFirstAccessibleRoute } from "@/lib/access-control";
 import type { DashboardSummary, StatusBreakdownItem, MonthlyActivityItem, RecentActivityItem } from "@/types/dashboard";
 import type { PresetKey } from "@/lib/dashboard-utils";
 import { presetRange, toDateParam } from "@/lib/dashboard-utils";
@@ -60,9 +61,19 @@ export default function DashboardPage() {
     }
   }, [loading, isAuthenticated, user, router]);
 
+  useEffect(() => {
+    if (!loading && user && !canAccessModule(user, "dashboard")) {
+      router.replace(getFirstAccessibleRoute(user));
+    }
+  }, [loading, user, router]);
+
   if (loading) return <PageLoader />;
 
   if (!isAuthenticated || !user) {
+    return null;
+  }
+
+  if (!canAccessModule(user, "dashboard")) {
     return null;
   }
 
