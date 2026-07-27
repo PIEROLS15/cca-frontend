@@ -1,4 +1,4 @@
-import { Loader2, Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import type { FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -87,7 +87,7 @@ export function RegistrarComuneroDialog({
             </Button>
             <Button type="submit" disabled={submitting} className="gap-1.5">
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              <Plus className="h-4 w-4" /> Agregar
+              {submitting ? "Agregando" : "Agregar"}
             </Button>
           </DialogFooter>
         </form>

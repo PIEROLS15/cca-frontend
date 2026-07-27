@@ -2,6 +2,7 @@
 
 import { Suspense, useMemo, useState, type FormEvent } from "react";
 import { Check, Eye, Plus, Printer, Trash2, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { EliminarCarnetDialog } from "@/components/carnet-comuneros/EliminarCarnetDialog";
@@ -10,50 +11,58 @@ import { RangoSelector } from "@/components/carnet-comuneros/RangoSelector";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { SearchFilters } from "@/components/ui/SearchFilters";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useCarnetComuneros } from "@/store/carnet-comuneros";
+import { useCommonerLicenses } from "@/hooks/use-commoner-licenses";
 import type { CarnetComunero } from "@/types/carnet-comunero";
 
 type DialogMode = "create" | "delete" | null;
 
 function CarnetComunerosContent() {
-  const items = useCarnetComuneros((s) => s.items);
-  const add = useCarnetComuneros((s) => s.add);
-  const remove = useCarnetComuneros((s) => s.remove);
+  const router = useRouter();
+  const {
+    items,
+    loading,
+    submitting,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    search,
+    setSearch,
+    total,
+    createCommonerLicense,
+    deleteCommonerLicense,
+  } = useCommonerLicenses({ initial: { page: 1, limit: 5, search: "" } });
 
-  const [search, setSearch] = useState("");
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
   const [selectedComunero, setSelectedComunero] = useState<CarnetComunero | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [selectedRange, setSelectedRange] = useState<{
+    field: "licenseNumber" | "dni";
+    from: string;
+    to: string;
+  } | null>(null);
 
   const [dni, setDni] = useState("");
   const [nroCarnet, setNroCarnet] = useState("");
+  const [manualValues, setManualValues] = useState("");
 
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-
-  const filteredData = useMemo(() => {
-    const s = search.trim().toLowerCase();
-    const sorted = [...items].sort((a, b) => b.id - a.id);
-    if (!s) return sorted;
-    return sorted.filter(
-      (i) => i.dni.includes(s) || i.nroCarnet.toLowerCase().includes(s),
-    );
-  }, [items, search]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredData.length / limit));
-  const safePage = Math.min(page, totalPages);
-  const paginatedData = filteredData.slice((safePage - 1) * limit, safePage * limit);
+  const sortedItems = useMemo(() => [...items].sort((a, b) => b.id - a.id), [items]);
+  const totalItems = total;
+  const safePage = page;
 
   const allFilteredSelected =
-    paginatedData.length > 0 && paginatedData.every((i) => selected.has(i.id));
+    sortedItems.length > 0 && sortedItems.every((i) => selected.has(i.id));
   const someFilteredSelected =
-    !allFilteredSelected && paginatedData.some((i) => selected.has(i.id));
+    !allFilteredSelected && sortedItems.some((i) => selected.has(i.id));
 
   function toggleOne(id: number, checked: boolean) {
+    setSelectedRange(null);
     setSelected((prev) => {
       const next = new Set(prev);
       if (checked) next.add(id);
@@ -63,9 +72,10 @@ function CarnetComunerosContent() {
   }
 
   function toggleAllFiltered(checked: boolean) {
+    setSelectedRange(null);
     setSelected((prev) => {
       const next = new Set(prev);
-      for (const i of paginatedData) {
+      for (const i of sortedItems) {
         if (checked) next.add(i.id);
         else next.delete(i.id);
       }
@@ -75,6 +85,30 @@ function CarnetComunerosContent() {
 
   function clearSelection() {
     setSelected(new Set());
+    setSelectedRange(null);
+  }
+
+  function handleSearchChange(value: string) {
+    clearSelection();
+    setSearch(value);
+    setPage(1);
+  }
+
+  function handleClearSearch() {
+    clearSelection();
+    setSearch("");
+    setPage(1);
+  }
+
+  function handlePageChange(nextPage: number) {
+    clearSelection();
+    setPage(nextPage);
+  }
+
+  function handleLimitChange(nextLimit: number) {
+    clearSelection();
+    setLimit(nextLimit);
+    setPage(1);
   }
 
   function closeDialog() {
@@ -99,35 +133,73 @@ function CarnetComunerosContent() {
   function handleSubmitCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const res = add(dni, nroCarnet);
-    if (!res.ok) {
-      toast.error(res.error ?? "No se pudo registrar");
-      return;
-    }
-
-    toast.success("Comunero registrado correctamente.");
-    closeDialog();
+    void (async () => {
+      const ok = await createCommonerLicense({ dni, nroCarnet });
+      if (ok) closeDialog();
+    })();
   }
 
   function handleDelete() {
     if (!selectedComunero) return;
 
-    remove(selectedComunero.id);
-    toast.success("Registro eliminado.");
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.delete(selectedComunero.id);
-      return next;
-    });
-    closeDialog();
+    void (async () => {
+      const ok = await deleteCommonerLicense(selectedComunero);
+      if (ok) {
+        setSelected((prev) => {
+          const next = new Set(prev);
+          next.delete(selectedComunero.id);
+          return next;
+        });
+        closeDialog();
+      }
+    })();
   }
 
   function handlePrintAll() {
-    toast.info("Función de impresión próximamente.");
+    const params = new URLSearchParams();
+    params.set("mode", "all");
+    if (search.trim()) params.set("search", search.trim());
+    router.push(`/carnet-comuneros/pdf?${params.toString()}`);
   }
 
   function handlePrintSelected() {
-    toast.info("Función de impresión próximamente.");
+    if (selectedRange) {
+      const params = new URLSearchParams();
+      params.set("mode", "range");
+      params.set("field", selectedRange.field);
+      params.set("from", selectedRange.from);
+      params.set("to", selectedRange.to);
+      if (search.trim()) params.set("search", search.trim());
+      router.push(`/carnet-comuneros/pdf?${params.toString()}`);
+      return;
+    }
+
+    if (selected.size === 1) {
+      const id = [...selected][0];
+      router.push(`/carnet-comuneros/${id}/pdf`);
+      return;
+    }
+
+    toast.info("Usa el selector de rango o selecciona un solo carnet.");
+  }
+
+  function handlePrintList() {
+    const values = manualValues.trim();
+
+    if (!values) {
+      toast.error("Ingresa al menos un DNI o N° de carnet.");
+      return;
+    }
+
+    const params = new URLSearchParams();
+    params.set("mode", "list");
+    params.set("values", values);
+    if (search.trim()) params.set("search", search.trim());
+    router.push(`/carnet-comuneros/pdf?${params.toString()}`);
+  }
+
+  function handleViewPdf(id: number) {
+    router.push(`/carnet-comuneros/${id}/pdf`);
   }
 
   const columns: DataTableColumn<CarnetComunero>[] = [
@@ -207,8 +279,9 @@ function CarnetComunerosContent() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            className="h-8 w-8 text-info hover:text-info"
             aria-label="Ver detalles"
+            onClick={() => handleViewPdf(r.id)}
           >
             <Eye className="h-4 w-4" />
           </Button>
@@ -241,13 +314,13 @@ function CarnetComunerosContent() {
                 <Printer className="h-4 w-4" /> Imprimir seleccionados ({selected.size})
               </Button>
             )}
-            <Button
-              variant="outline"
-              className="gap-1.5"
-              disabled={items.length === 0}
-              onClick={handlePrintAll}
-            >
-              <Printer className="h-4 w-4" /> Imprimir todos (A4)
+          <Button
+            variant="outline"
+            className="gap-1.5"
+            disabled={items.length === 0}
+            onClick={handlePrintAll}
+          >
+              <Printer className="h-4 w-4" /> Imprimir todos
             </Button>
             <Button onClick={openCreateDialog} className="gap-1.5">
               <Plus className="h-4 w-4" /> Nuevo comunero
@@ -257,24 +330,38 @@ function CarnetComunerosContent() {
       >
         <SearchFilters
           search={search}
-          onSearchChange={(value) => {
-            setSearch(value);
-            setPage(1);
-          }}
-          onClear={() => {
-            setSearch("");
-            setPage(1);
-          }}
+          onSearchChange={handleSearchChange}
+          onClear={handleClearSearch}
           placeholder="Buscar por DNI o N° de carnet..."
         />
 
-        <RangoSelector
-          items={items}
-          onApply={(ids) => {
-            setSelected(new Set(ids));
-            toast.success(`${ids.length} carnets añadidos a la selección.`);
-          }}
-        />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <RangoSelector
+            items={items}
+            onApply={(selection) => {
+              setSelected(new Set(selection.ids));
+              setSelectedRange({ field: selection.field, from: selection.from, to: selection.to });
+              toast.success(`${selection.ids.length} carnets añadidos a la selección.`);
+            }}
+          />
+
+          <Card className="p-4">
+            <div className="flex h-full flex-col justify-end gap-3 sm:flex-row sm:items-end">
+              <div className="flex-1 space-y-1.5">
+                <label className="text-xs font-medium">Imprimir por lista</label>
+                <Input
+                  value={manualValues}
+                  onChange={(e) => setManualValues(e.target.value)}
+                  placeholder="4776,4777,0001"
+                />
+              </div>
+
+              <Button type="button" variant="outline" onClick={handlePrintList}>
+                <Printer className="h-4 w-4" /> Imprimir lista
+              </Button>
+            </div>
+          </Card>
+        </div>
 
         {selected.size > 0 && (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm">
@@ -290,30 +377,28 @@ function CarnetComunerosContent() {
 
         <DataTable
           columns={columns}
-          data={paginatedData}
+          data={sortedItems}
           rowKey={(r) => r.id}
+          loading={loading}
+          loadingText="Cargando carnets..."
           emptyText="Aún no hay comuneros registrados."
-          footer={
-            filteredData.length > 0 ? (
-              <PaginationControls
-                page={safePage}
-                limit={limit}
-                totalItems={filteredData.length}
-                onPageChange={setPage}
-                onLimitChange={(value) => {
-                  setLimit(value);
-                  setPage(1);
-                }}
-              />
-            ) : null
-          }
         />
+
+        {!loading && totalItems > 0 && (
+          <PaginationControls
+            page={safePage}
+            limit={limit}
+            totalItems={totalItems}
+            onPageChange={handlePageChange}
+            onLimitChange={handleLimitChange}
+          />
+        )}
 
         <RegistrarComuneroDialog
           open={dialogMode === "create"}
           dni={dni}
           nroCarnet={nroCarnet}
-          submitting={false}
+          submitting={submitting}
           onDniChange={setDni}
           onNroCarnetChange={setNroCarnet}
           onClose={closeDialog}
@@ -323,7 +408,7 @@ function CarnetComunerosContent() {
         <EliminarCarnetDialog
           open={dialogMode === "delete"}
           item={selectedComunero}
-          submitting={false}
+          submitting={submitting}
           onClose={closeDialog}
           onConfirm={handleDelete}
         />

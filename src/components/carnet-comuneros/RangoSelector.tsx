@@ -16,11 +16,16 @@ import type { CarnetComunero } from "@/types/carnet-comunero";
 
 interface RangoSelectorProps {
   items: CarnetComunero[];
-  onApply: (ids: number[]) => void;
+  onApply: (selection: {
+    field: "licenseNumber" | "dni";
+    from: string;
+    to: string;
+    ids: number[];
+  }) => void;
 }
 
 export function RangoSelector({ items, onApply }: RangoSelectorProps) {
-  const [field, setField] = useState<"nroCarnet" | "dni">("nroCarnet");
+  const [field, setField] = useState<"licenseNumber" | "dni">("licenseNumber");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
@@ -41,7 +46,7 @@ export function RangoSelector({ items, onApply }: RangoSelectorProps) {
       const min = Math.min(Number(f), Number(t));
       const max = Math.max(Number(f), Number(t));
       matched = items.filter((i) => {
-        const val = field === "nroCarnet" ? i.nroCarnet : i.dni;
+        const val = field === "licenseNumber" ? i.nroCarnet : i.dni;
         if (!/^\d+$/.test(val)) return false;
         const n = Number(val);
         return n >= min && n <= max;
@@ -49,7 +54,7 @@ export function RangoSelector({ items, onApply }: RangoSelectorProps) {
     } else {
       const [lo, hi] = [f, t].sort();
       matched = items.filter((i) => {
-        const val = field === "nroCarnet" ? i.nroCarnet : i.dni;
+        const val = field === "licenseNumber" ? i.nroCarnet : i.dni;
         return val >= lo && val <= hi;
       });
     }
@@ -59,7 +64,12 @@ export function RangoSelector({ items, onApply }: RangoSelectorProps) {
       return;
     }
 
-    onApply(matched.map((i) => i.id));
+    onApply({
+      field,
+      from: f,
+      to: t,
+      ids: matched.map((i) => i.id),
+    });
     setFrom("");
     setTo("");
   }
@@ -71,13 +81,13 @@ export function RangoSelector({ items, onApply }: RangoSelectorProps) {
           <Label className="text-xs">Seleccionar por rango</Label>
           <Select
             value={field}
-            onValueChange={(v) => setField(v as "nroCarnet" | "dni")}
+            onValueChange={(v) => setField(v as "licenseNumber" | "dni")}
           >
             <SelectTrigger className="w-full sm:w-[160px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="nroCarnet">N° Carnet</SelectItem>
+              <SelectItem value="licenseNumber">N° Carnet</SelectItem>
               <SelectItem value="dni">DNI</SelectItem>
             </SelectContent>
           </Select>
@@ -91,7 +101,7 @@ export function RangoSelector({ items, onApply }: RangoSelectorProps) {
             id="rango-desde"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            placeholder={field === "nroCarnet" ? "4780" : "12345678"}
+            placeholder={field === "licenseNumber" ? "4780" : "12345678"}
           />
         </div>
 
@@ -103,7 +113,7 @@ export function RangoSelector({ items, onApply }: RangoSelectorProps) {
             id="rango-hasta"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            placeholder={field === "nroCarnet" ? "4820" : "87654321"}
+            placeholder={field === "licenseNumber" ? "4820" : "87654321"}
           />
         </div>
 
