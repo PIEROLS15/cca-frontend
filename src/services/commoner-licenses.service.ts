@@ -1,6 +1,7 @@
 import { apiFetch, getBaseUrl } from "./api";
 import type { PaginatedApiResponse } from "@/types/api";
 import type { CarnetComunero } from "@/types/carnet-comunero";
+import type { CommonerLicenseVerification } from "@/types/commoner-license-verification";
 
 type CommonerLicenseListResponse = PaginatedApiResponse<{
   id: number;
@@ -105,5 +106,11 @@ export const CommonerLicensesService = {
   getBulkPdfUrl(params: BulkPdfParams) {
     const query = buildQuery(params);
     return `${getBaseUrl()}/api/commoner-licenses/pdf${query ? `?${query}` : ""}`;
+  },
+
+  verifyPublic(carnetId: string) {
+    return apiFetch<{ message: string; error: boolean; status: number; data: CommonerLicenseVerification }>(
+      `/api/public/commoner-licenses/${encodeURIComponent(carnetId)}`,
+    );
   },
 };

@@ -4,7 +4,8 @@ import type { NextRequest } from "next/server";
 const LOGIN_PATH = "/login";
 const HOME_PATH = "/";
 const CERTIFICATE_VERIFICATION_PATH = "/verificar-certificado";
-const PUBLIC_PATHS = [HOME_PATH, LOGIN_PATH, CERTIFICATE_VERIFICATION_PATH];
+const COMUNERO_VERIFICATION_PATH = "/comunero";
+const PUBLIC_PATHS = [HOME_PATH, LOGIN_PATH, CERTIFICATE_VERIFICATION_PATH, COMUNERO_VERIFICATION_PATH];
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
