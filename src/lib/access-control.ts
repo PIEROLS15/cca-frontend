@@ -12,13 +12,15 @@ const ROLE_GROUPS = [
   { group: 2, roles: ["Presidente", "Ingeniero"] },
   { group: 3, roles: ["Secretaria", "Supervisor"] },
   { group: 4, roles: ["Asistente", "AtencionCliente"] },
+  { group: 5, roles: ["CarnetComuneros"] },
 ];
 
 const MODULE_ACCESS_BY_GROUP: Record<number, string[]> = {
   1: ["dashboard", "roles", "users", "sectors", "terrain-types", "clients", "comuneros", "carnet-comuneros", "certificate-requests", "certificates", "assembly-record-requests", "reports"],
   2: ["dashboard", "roles", "users", "sectors", "terrain-types", "clients", "comuneros", "carnet-comuneros", "certificate-requests", "certificates", "assembly-record-requests", "reports"],
-  3: ["dashboard", "roles", "sectors", "terrain-types", "clients", "comuneros", "carnet-comuneros", "certificate-requests", "certificates", "assembly-record-requests", "reports"],
+  3: ["dashboard", "roles", "sectors", "terrain-types", "clients", "comuneros", "certificate-requests", "certificates", "assembly-record-requests", "reports"],
   4: ["dashboard", "clients", "certificate-requests", "certificates", "assembly-record-requests"],
+  5: ["carnet-comuneros"],
 };
 
 const ROUTE_MODULES = [
@@ -90,4 +92,25 @@ export function canAssignRole(actor: UserLike, role: RoleLike) {
 
 export function filterAssignableRoles<T extends { name: string; group?: number | null }>(actor: UserLike, roles: T[]) {
   return roles.filter((role) => canAssignRole(actor, role));
+}
+
+const MODULE_ROUTE: Record<string, string> = {
+  dashboard: "/",
+  certificates: "/certificados",
+  sectors: "/sectores",
+  "terrain-types": "/tipos-terreno",
+  clients: "/clientes",
+  comuneros: "/comuneros",
+  "carnet-comuneros": "/carnet-comuneros",
+  "certificate-requests": "/solicitudes-certificados",
+  "assembly-record-requests": "/solicitudes-acta",
+  users: "/usuarios",
+};
+
+export function getFirstAccessibleRoute(user: UserLike): string {
+  const allowed = getAllowedModuleKeys(user);
+  for (const key of allowed) {
+    if (MODULE_ROUTE[key]) return MODULE_ROUTE[key];
+  }
+  return "/";
 }

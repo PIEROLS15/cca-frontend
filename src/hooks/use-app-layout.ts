@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 import { useSession } from "@/context/session-context";
-import { canAccessModule, canAccessPath } from "@/lib/access-control";
+import { canAccessModule, canAccessPath, getFirstAccessibleRoute } from "@/lib/access-control";
 import { useTheme } from "@/store/theme";
 
 const nav = [
@@ -51,7 +51,7 @@ export function useAppLayout() {
 
   useEffect(() => {
     if (!loading && user && !canAccessPath(user, pathname)) {
-      router.replace("/");
+      router.replace(getFirstAccessibleRoute(user));
     }
   }, [loading, user, pathname, router]);
 
