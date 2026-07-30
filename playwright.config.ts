@@ -29,14 +29,17 @@ loadEnvFile(path.resolve(process.cwd(), ".env"));
 const externalBaseURL = process.env.PLAYWRIGHT_BASE_URL || (!process.env.CI ? process.env.FRONTEND_TEST_URL : undefined);
 const baseURL = externalBaseURL || "http://127.0.0.1:9000";
 const useExternalEnvironment = Boolean(externalBaseURL);
+const storageStatePath = path.resolve(process.cwd(), ".auth", "seeded-user.json");
 
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
-  workers: 1,
+  workers: process.env.PLAYWRIGHT_WORKERS ? Number(process.env.PLAYWRIGHT_WORKERS) : process.env.CI ? 4 : 1,
+  globalSetup: "./tests/e2e/auth/global-setup.ts",
   reporter: process.env.CI ? "github" : "list",
   use: {
     baseURL,
+    storageState: storageStatePath,
     trace: "on-first-retry",
   },
   webServer: useExternalEnvironment

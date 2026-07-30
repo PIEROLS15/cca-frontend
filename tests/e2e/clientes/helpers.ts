@@ -19,6 +19,7 @@ export async function goToClientes(page: Page) {
   await loginAsSeededUser(page);
   await page.goto(CLIENTES_PATH);
   await expect(page.getByRole("heading", { name: "Clientes" })).toBeVisible();
+  await expect(page.getByText("Cargando clientes...")).toBeHidden({ timeout: 30000 });
 }
 
 export async function searchClientByName(page: Page, name: string) {
@@ -41,11 +42,11 @@ export async function clearClientFilters(page: Page) {
 }
 
 export async function expectClientVisible(page: Page, name: string) {
-  await expect(getClientRow(page, name)).toBeVisible();
+  await expect(getClientRow(page, name)).toBeVisible({ timeout: 15000 });
 }
 
 export async function expectClientNotVisible(page: Page, name: string) {
-  await expect(getClientRow(page, name)).not.toBeVisible();
+  await expect(getClientRow(page, name)).not.toBeVisible({ timeout: 15000 });
 }
 
 export async function createClient(page: Page, payload: ClientPayload) {

@@ -16,6 +16,7 @@ export async function goToSolicitudesCertificados(page: Page) {
   await loginAsSeededUser(page);
   await page.goto(SOLICITUDES_PATH);
   await expect(page.getByRole("heading", { name: "Solicitudes de Certificados" })).toBeVisible();
+  await expect(page.getByText("Cargando solicitudes...")).toBeHidden({ timeout: 30000 });
 }
 
 export async function searchCertificateRequest(page: Page, query: string) {
@@ -27,11 +28,11 @@ export async function clearCertificateRequestSearch(page: Page) {
 }
 
 export async function expectCertificateRequestVisible(page: Page, text: string) {
-  await expect(page.getByRole("row").filter({ hasText: text })).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: text })).toBeVisible({ timeout: 15000 });
 }
 
 export async function expectCertificateRequestNotVisible(page: Page, text: string) {
-  await expect(page.getByRole("row").filter({ hasText: text })).not.toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: text })).not.toBeVisible({ timeout: 15000 });
 }
 
 export async function changeCertificateRequestStatus(

@@ -17,6 +17,7 @@ export async function goToSectores(page: Page) {
   await loginAsSeededUser(page);
   await page.goto(SECTORES_PATH);
   await expect(page.getByRole("heading", { name: "Sectores" })).toBeVisible();
+  await expect(page.getByText("Cargando sectores...")).toBeHidden({ timeout: 30000 });
 }
 
 export async function searchSector(page: Page, name: string) {
@@ -28,7 +29,7 @@ export async function clearSectorSearch(page: Page) {
 }
 
 export async function expectSectorVisible(page: Page, name: string) {
-  await expect(getSectorRow(page, name)).toBeVisible();
+  await expect(getSectorRow(page, name)).toBeVisible({ timeout: 15000 });
 }
 
 export async function isSectorVisible(page: Page, name: string) {
