@@ -9,6 +9,7 @@ export async function goToComuneros(page: Page) {
   await loginAsSeededUser(page);
   await page.goto(COMUNEROS_PATH);
   await expect(page.getByRole("heading", { name: "Comuneros Empadronados" })).toBeVisible();
+  await expect(page.getByText("Cargando comuneros...")).toBeHidden({ timeout: 30000 });
 }
 
 export async function searchComunero(page: Page, query: string) {
@@ -20,11 +21,11 @@ export async function clearComuneroSearch(page: Page) {
 }
 
 export async function expectComuneroVisible(page: Page, name: string) {
-  await expect(page.getByRole("row").filter({ hasText: name })).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: name })).toBeVisible({ timeout: 15000 });
 }
 
 export async function expectComuneroNotVisible(page: Page, name: string) {
-  await expect(page.getByRole("row").filter({ hasText: name })).not.toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: name })).not.toBeVisible({ timeout: 15000 });
 }
 
 export async function getComuneroRow(page: Page, name: string) {

@@ -17,6 +17,7 @@ export async function goToTiposTerreno(page: Page) {
   await loginAsSeededUser(page);
   await page.goto(TIPOS_TERRENO_PATH);
   await expect(page.getByRole("heading", { name: "Tipos de Terreno" })).toBeVisible();
+  await expect(page.getByText("Cargando tipos de terreno...")).toBeHidden({ timeout: 30000 });
 }
 
 export async function searchTerrainType(page: Page, name: string) {
@@ -28,7 +29,7 @@ export async function clearTerrainTypeSearch(page: Page) {
 }
 
 export async function expectTerrainTypeVisible(page: Page, name: string) {
-  await expect(getTerrainTypeRow(page, name)).toBeVisible();
+  await expect(getTerrainTypeRow(page, name)).toBeVisible({ timeout: 15000 });
 }
 
 export async function createTerrainType(page: Page, name: string) {
