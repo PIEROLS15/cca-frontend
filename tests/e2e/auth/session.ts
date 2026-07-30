@@ -12,6 +12,12 @@ function requireEnv(name: string) {
 }
 
 export async function loginAsSeededUser(page: Page) {
+  await page.goto("/");
+
+  if (!page.url().includes("/login")) {
+    return;
+  }
+
   await loginWithCredentials(page, requireEnv("E2E_USERNAME"), requireEnv("E2E_PASSWORD"));
 }
 
