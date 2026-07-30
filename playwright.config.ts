@@ -33,7 +33,7 @@ const useExternalEnvironment = Boolean(externalBaseURL);
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
-  workers: 1,
+  workers: process.env.PLAYWRIGHT_WORKERS ? Number(process.env.PLAYWRIGHT_WORKERS) : process.env.CI ? 4 : 1,
   reporter: process.env.CI ? "github" : "list",
   use: {
     baseURL,

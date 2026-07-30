@@ -85,9 +85,29 @@ jobs:
         run: |
           ssh -fN $SSH_OPTS -p "${{ secrets.VPS_TEST_PORT }}" -L 9101:127.0.0.1:9101 "${{ secrets.VPS_TEST_USER }}@${{ secrets.VPS_TEST_HOST }}"
 
-      - name: Run Playwright
+      - name: Run profile Playwright tests
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:9100
           E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
-        run: pnpm test:e2e
+          PLAYWRIGHT_WORKERS: 1
+        run: pnpm exec playwright test tests/e2e/perfil
+
+      - name: Run remaining Playwright tests
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:9100
+          E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          PLAYWRIGHT_WORKERS: 4
+        run: |
+          pnpm exec playwright test \
+            tests/e2e/auth \
+            tests/e2e/carnet-comuneros \
+            tests/e2e/certificados \
+            tests/e2e/clientes \
+            tests/e2e/comuneros \
+            tests/e2e/sectores \
+            tests/e2e/solicitudes-acta \
+            tests/e2e/solicitudes-certificados \
+            tests/e2e/tipos-terreno \
+            tests/e2e/usuarios
