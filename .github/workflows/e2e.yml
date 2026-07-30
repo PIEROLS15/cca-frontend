@@ -85,22 +85,7 @@ jobs:
         run: |
           ssh -fN $SSH_OPTS -p "${{ secrets.VPS_TEST_PORT }}" -L 9101:127.0.0.1:9101 "${{ secrets.VPS_TEST_USER }}@${{ secrets.VPS_TEST_HOST }}"
 
-      - name: Run login Playwright test
-        env:
-          PLAYWRIGHT_BASE_URL: http://127.0.0.1:9100
-          E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
-          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
-        run: pnpm exec playwright test tests/e2e/auth/login.spec.ts
-
-      - name: Run profile Playwright tests
-        env:
-          PLAYWRIGHT_BASE_URL: http://127.0.0.1:9100
-          E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
-          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
-          PLAYWRIGHT_WORKERS: 1
-        run: pnpm exec playwright test tests/e2e/perfil tests/e2e/auth/logout.spec.ts
-
-      - name: Run remaining Playwright tests
+      - name: Run read-only Playwright tests
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:9100
           E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
@@ -108,12 +93,86 @@ jobs:
           PLAYWRIGHT_WORKERS: 4
         run: |
           pnpm exec playwright test \
+            tests/e2e/auth/login.spec.ts \
             tests/e2e/carnet-comuneros \
-            tests/e2e/certificados \
-            tests/e2e/clientes \
             tests/e2e/comuneros \
-            tests/e2e/sectores \
-            tests/e2e/solicitudes-acta \
-            tests/e2e/solicitudes-certificados \
-            tests/e2e/tipos-terreno \
-            tests/e2e/usuarios
+            tests/e2e/clientes/search-by-client-code.spec.ts \
+            tests/e2e/clientes/search-by-dni.spec.ts \
+            tests/e2e/clientes/search-by-name.spec.ts \
+            tests/e2e/clientes/search-by-ruc.spec.ts \
+            tests/e2e/clientes/search-by-type-comunero.spec.ts \
+            tests/e2e/clientes/search-by-type-tercero.spec.ts \
+            tests/e2e/certificados/search-by-certificate-code.spec.ts \
+            tests/e2e/certificados/search-by-client-code.spec.ts \
+            tests/e2e/certificados/search-by-dni.spec.ts \
+            tests/e2e/certificados/search-by-lote.spec.ts \
+            tests/e2e/certificados/search-by-mz.spec.ts \
+            tests/e2e/certificados/search-by-name.spec.ts \
+            tests/e2e/certificados/search-by-role.spec.ts \
+            tests/e2e/certificados/search-by-ruc.spec.ts \
+            tests/e2e/certificados/search-by-ubicacion.spec.ts \
+            tests/e2e/certificados/view-pdf.spec.ts \
+            tests/e2e/certificados/download-certificates.spec.ts \
+            tests/e2e/sectores/search-sector.spec.ts \
+            tests/e2e/solicitudes-acta/search-by-buyer.spec.ts \
+            tests/e2e/solicitudes-acta/search-by-certificate-code.spec.ts \
+            tests/e2e/solicitudes-acta/search-by-description.spec.ts \
+            tests/e2e/solicitudes-acta/search-by-location.spec.ts \
+            tests/e2e/solicitudes-acta/view-pdf.spec.ts \
+            tests/e2e/solicitudes-acta/download-assembly-record.spec.ts \
+            tests/e2e/solicitudes-certificados/search-by-dni.spec.ts \
+            tests/e2e/solicitudes-certificados/search-by-name.spec.ts \
+            tests/e2e/solicitudes-certificados/search-by-request-code.spec.ts \
+            tests/e2e/solicitudes-certificados/search-by-ruc.spec.ts \
+            tests/e2e/solicitudes-certificados/view-pdf.spec.ts \
+            tests/e2e/solicitudes-certificados/download-certificate-request.spec.ts \
+            tests/e2e/tipos-terreno/search-terreno.spec.ts \
+            tests/e2e/usuarios/search-by-email.spec.ts \
+            tests/e2e/usuarios/search-by-name.spec.ts \
+            tests/e2e/usuarios/search-by-role.spec.ts \
+            tests/e2e/usuarios/search-by-status.spec.ts \
+            tests/e2e/usuarios/search-by-username.spec.ts
+
+      - name: Run mutation Playwright tests
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:9100
+          E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          PLAYWRIGHT_WORKERS: 1
+        run: |
+          pnpm exec playwright test \
+            tests/e2e/auth/logout.spec.ts \
+            tests/e2e/perfil \
+            tests/e2e/clientes/create-client.spec.ts \
+            tests/e2e/clientes/edit-client.spec.ts \
+            tests/e2e/clientes/delete-client.spec.ts \
+            tests/e2e/sectores/create-sector.spec.ts \
+            tests/e2e/sectores/edit-sector.spec.ts \
+            tests/e2e/sectores/delete-sector.spec.ts \
+            tests/e2e/tipos-terreno/create-terreno.spec.ts \
+            tests/e2e/tipos-terreno/edit-terreno.spec.ts \
+            tests/e2e/tipos-terreno/delete-terreno.spec.ts \
+            tests/e2e/usuarios/create-user.spec.ts \
+            tests/e2e/usuarios/edit-user.spec.ts \
+            tests/e2e/usuarios/edit-cert-limit.spec.ts \
+            tests/e2e/usuarios/activate-user.spec.ts \
+            tests/e2e/usuarios/deactivate-user.spec.ts \
+            tests/e2e/certificados/create-certificate.spec.ts \
+            tests/e2e/certificados/edit-certificate.spec.ts \
+            tests/e2e/certificados/delete-certificate.spec.ts \
+            tests/e2e/certificados/change-status-to-entregado.spec.ts \
+            tests/e2e/certificados/change-status-to-observado.spec.ts \
+            tests/e2e/certificados/change-status-to-por-firmar.spec.ts \
+            tests/e2e/certificados/change-status-to-por-recoger.spec.ts \
+            tests/e2e/solicitudes-acta/create-assembly-record.spec.ts \
+            tests/e2e/solicitudes-acta/edit-assembly-record.spec.ts \
+            tests/e2e/solicitudes-acta/delete-assembly-record.spec.ts \
+            tests/e2e/solicitudes-acta/change-status-to-entregado.spec.ts \
+            tests/e2e/solicitudes-acta/change-status-to-por-recoger.spec.ts \
+            tests/e2e/solicitudes-certificados/create-certificate-request.spec.ts \
+            tests/e2e/solicitudes-certificados/edit-certificate-request.spec.ts \
+            tests/e2e/solicitudes-certificados/delete-certificate-request.spec.ts \
+            tests/e2e/solicitudes-certificados/change-status-to-entregado.spec.ts \
+            tests/e2e/solicitudes-certificados/change-status-to-observado.spec.ts \
+            tests/e2e/solicitudes-certificados/change-status-to-por-firmar.spec.ts \
+            tests/e2e/solicitudes-certificados/change-status-to-por-recoger.spec.ts
