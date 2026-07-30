@@ -9,6 +9,7 @@ export async function goToSolicitudesActa(page: Page) {
   await loginAsSeededUser(page);
   await page.goto(SOLICITUDES_PATH);
   await expect(page.getByRole("heading", { name: "Solicitudes de Acta de Asamblea" })).toBeVisible();
+  await expect(page.getByText("Cargando solicitudes...")).toBeHidden({ timeout: 30000 });
 }
 
 export async function searchAssemblyRecord(page: Page, query: string) {
@@ -20,11 +21,11 @@ export async function clearAssemblyRecordSearch(page: Page) {
 }
 
 export async function expectAssemblyRecordVisible(page: Page, text: string) {
-  await expect(page.getByRole("row").filter({ hasText: text })).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: text })).toBeVisible({ timeout: 15000 });
 }
 
 export async function expectAssemblyRecordNotVisible(page: Page, text: string) {
-  await expect(page.getByRole("row").filter({ hasText: text })).not.toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: text })).not.toBeVisible({ timeout: 15000 });
 }
 
 export async function changeAssemblyRecordStatus(

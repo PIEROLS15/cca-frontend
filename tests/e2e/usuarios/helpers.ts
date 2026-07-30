@@ -18,6 +18,7 @@ export async function goToUsuarios(page: Page) {
   await loginAsSeededUser(page);
   await page.goto(USUARIOS_PATH);
   await expect(page.getByRole("heading", { name: "Usuarios" })).toBeVisible();
+  await expect(page.getByText("Cargando usuarios...")).toBeHidden({ timeout: 30000 });
 }
 
 export async function searchUser(page: Page, query: string) {
@@ -45,11 +46,11 @@ export async function filterByStatus(page: Page, status: "Activos" | "Inactivos"
 }
 
 export async function expectUserVisible(page: Page, name: string) {
-  await expect(getUserRow(page, name)).toBeVisible();
+  await expect(getUserRow(page, name)).toBeVisible({ timeout: 15000 });
 }
 
 export async function expectUserNotVisible(page: Page, name: string) {
-  await expect(getUserRow(page, name)).not.toBeVisible();
+  await expect(getUserRow(page, name)).not.toBeVisible({ timeout: 15000 });
 }
 
 export async function createUser(page: Page, payload: UserPayload) {

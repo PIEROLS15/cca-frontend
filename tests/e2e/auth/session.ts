@@ -12,7 +12,14 @@ function requireEnv(name: string) {
 }
 
 export async function loginAsSeededUser(page: Page) {
-  await loginWithCredentials(page, requireEnv("E2E_USERNAME"), requireEnv("E2E_PASSWORD"));
+  await page.goto("/");
+
+  if (page.url().includes("/login")) {
+    await loginWithCredentials(page, requireEnv("E2E_USERNAME"), requireEnv("E2E_PASSWORD"));
+    return;
+  }
+
+  await expect(page.getByText("Panel general")).toBeVisible({ timeout: 30000 });
 }
 
 export async function loginWithCredentials(page: Page, username: string, password: string) {

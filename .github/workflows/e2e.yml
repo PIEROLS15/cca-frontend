@@ -12,8 +12,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  playwright:
-    name: Playwright against VPS test env
+  prepare:
+    name: Prepare VPS test env
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -77,6 +77,46 @@ jobs:
           ssh $SSH_OPTS -p "${{ secrets.VPS_TEST_PORT }}" "${{ secrets.VPS_TEST_USER }}@${{ secrets.VPS_TEST_HOST }}" \
             "set -e; RELEASE_DIR='/opt/app/frontend-test/releases/${{ github.sha }}'; ARCHIVE='/opt/app/frontend-test/releases/${{ github.sha }}.tgz'; tar -xzf \"\$ARCHIVE\" -C \"\$RELEASE_DIR\"; rm -f \"\$ARCHIVE\"; cd \"\$RELEASE_DIR\"; sh deploy/test/deploy.sh"
 
+  playwright-readonly:
+    name: Run read-only Playwright tests
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      SSH_OPTS: -o ServerAliveInterval=30 -o ServerAliveCountMax=12 -o TCPKeepAlive=yes -o ConnectTimeout=30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install chromium
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_TEST_SSH_KEY }}
+
+      - name: Trust VPS host
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.VPS_TEST_PORT }}" -H "${{ secrets.VPS_TEST_HOST }}" >> ~/.ssh/known_hosts
+
       - name: Open tunnel
         run: |
           ssh -fN $SSH_OPTS -p "${{ secrets.VPS_TEST_PORT }}" -L 9100:127.0.0.1:9100 "${{ secrets.VPS_TEST_USER }}@${{ secrets.VPS_TEST_HOST }}"
@@ -85,9 +125,313 @@ jobs:
         run: |
           ssh -fN $SSH_OPTS -p "${{ secrets.VPS_TEST_PORT }}" -L 9101:127.0.0.1:9101 "${{ secrets.VPS_TEST_USER }}@${{ secrets.VPS_TEST_HOST }}"
 
-      - name: Run Playwright
+      - name: Run read-only Playwright tests
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:9100
           E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
-        run: pnpm test:e2e
+          PLAYWRIGHT_WORKERS: 4
+        run: |
+          pnpm exec playwright test \
+            tests/e2e/auth/login.spec.ts \
+            tests/e2e/carnet-comuneros \
+            tests/e2e/comuneros \
+            tests/e2e/clientes/search-by-client-code.spec.ts \
+            tests/e2e/clientes/search-by-dni.spec.ts \
+            tests/e2e/clientes/search-by-name.spec.ts \
+            tests/e2e/clientes/search-by-ruc.spec.ts \
+            tests/e2e/clientes/search-by-type-comunero.spec.ts \
+            tests/e2e/clientes/search-by-type-tercero.spec.ts \
+            tests/e2e/certificados/search-by-certificate-code.spec.ts \
+            tests/e2e/certificados/search-by-client-code.spec.ts \
+            tests/e2e/certificados/search-by-dni.spec.ts \
+            tests/e2e/certificados/search-by-lote.spec.ts \
+            tests/e2e/certificados/search-by-mz.spec.ts \
+            tests/e2e/certificados/search-by-name.spec.ts \
+            tests/e2e/certificados/search-by-role.spec.ts \
+            tests/e2e/certificados/search-by-ruc.spec.ts \
+            tests/e2e/certificados/search-by-ubicacion.spec.ts \
+            tests/e2e/certificados/view-pdf.spec.ts \
+            tests/e2e/certificados/download-certificates.spec.ts \
+            tests/e2e/sectores/search-sector.spec.ts \
+            tests/e2e/solicitudes-acta/search-by-buyer.spec.ts \
+            tests/e2e/solicitudes-acta/search-by-certificate-code.spec.ts \
+            tests/e2e/solicitudes-acta/search-by-description.spec.ts \
+            tests/e2e/solicitudes-acta/search-by-location.spec.ts \
+            tests/e2e/solicitudes-acta/view-pdf.spec.ts \
+            tests/e2e/solicitudes-acta/download-assembly-record.spec.ts \
+            tests/e2e/solicitudes-certificados/search-by-dni.spec.ts \
+            tests/e2e/solicitudes-certificados/search-by-name.spec.ts \
+            tests/e2e/solicitudes-certificados/search-by-request-code.spec.ts \
+            tests/e2e/solicitudes-certificados/search-by-ruc.spec.ts \
+            tests/e2e/solicitudes-certificados/view-pdf.spec.ts \
+            tests/e2e/solicitudes-certificados/download-certificate-request.spec.ts \
+            tests/e2e/tipos-terreno/search-terreno.spec.ts \
+            tests/e2e/usuarios/search-by-email.spec.ts \
+            tests/e2e/usuarios/search-by-name.spec.ts \
+            tests/e2e/usuarios/search-by-role.spec.ts \
+            tests/e2e/usuarios/search-by-status.spec.ts \
+            tests/e2e/usuarios/search-by-username.spec.ts
+
+  playwright-auth-profile:
+    name: Run auth/profile Playwright tests
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      SSH_OPTS: -o ServerAliveInterval=30 -o ServerAliveCountMax=12 -o TCPKeepAlive=yes -o ConnectTimeout=30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install chromium
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_TEST_SSH_KEY }}
+
+      - name: Trust VPS host
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.VPS_TEST_PORT }}" -H "${{ secrets.VPS_TEST_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Open tunnel
+        run: |
+          ssh -fN $SSH_OPTS -p "${{ secrets.VPS_TEST_PORT }}" -L 9100:127.0.0.1:9100 "${{ secrets.VPS_TEST_USER }}@${{ secrets.VPS_TEST_HOST }}"
+
+      - name: Open backend tunnel
+        run: |
+          ssh -fN $SSH_OPTS -p "${{ secrets.VPS_TEST_PORT }}" -L 9101:127.0.0.1:9101 "${{ secrets.VPS_TEST_USER }}@${{ secrets.VPS_TEST_HOST }}"
+
+      - name: Run auth/profile Playwright tests
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:9100
+          E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          PLAYWRIGHT_WORKERS: 1
+        run: |
+          pnpm exec playwright test \
+            tests/e2e/auth/logout.spec.ts \
+            tests/e2e/perfil
+
+  playwright-catalogs:
+    name: Run catalog Playwright tests
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      SSH_OPTS: -o ServerAliveInterval=30 -o ServerAliveCountMax=12 -o TCPKeepAlive=yes -o ConnectTimeout=30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install chromium
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_TEST_SSH_KEY }}
+
+      - name: Trust VPS host
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.VPS_TEST_PORT }}" -H "${{ secrets.VPS_TEST_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Open tunnel
+        run: |
+          ssh -fN $SSH_OPTS -p "${{ secrets.VPS_TEST_PORT }}" -L 9100:127.0.0.1:9100 "${{ secrets.VPS_TEST_USER }}@${{ secrets.VPS_TEST_HOST }}"
+
+      - name: Open backend tunnel
+        run: |
+          ssh -fN $SSH_OPTS -p "${{ secrets.VPS_TEST_PORT }}" -L 9101:127.0.0.1:9101 "${{ secrets.VPS_TEST_USER }}@${{ secrets.VPS_TEST_HOST }}"
+
+      - name: Run catalog Playwright tests
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:9100
+          E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          PLAYWRIGHT_WORKERS: 1
+        run: |
+          pnpm exec playwright test \
+            tests/e2e/clientes/create-client.spec.ts \
+            tests/e2e/clientes/edit-client.spec.ts \
+            tests/e2e/clientes/delete-client.spec.ts \
+            tests/e2e/sectores/create-sector.spec.ts \
+            tests/e2e/sectores/edit-sector.spec.ts \
+            tests/e2e/sectores/delete-sector.spec.ts \
+            tests/e2e/tipos-terreno/create-terreno.spec.ts \
+            tests/e2e/tipos-terreno/edit-terreno.spec.ts \
+            tests/e2e/tipos-terreno/delete-terreno.spec.ts \
+            tests/e2e/usuarios/create-user.spec.ts \
+            tests/e2e/usuarios/edit-user.spec.ts \
+            tests/e2e/usuarios/edit-cert-limit.spec.ts \
+            tests/e2e/usuarios/activate-user.spec.ts \
+            tests/e2e/usuarios/deactivate-user.spec.ts
+
+  playwright-certificados:
+    name: Run certificados Playwright tests
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      SSH_OPTS: -o ServerAliveInterval=30 -o ServerAliveCountMax=12 -o TCPKeepAlive=yes -o ConnectTimeout=30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install chromium
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_TEST_SSH_KEY }}
+
+      - name: Trust VPS host
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.VPS_TEST_PORT }}" -H "${{ secrets.VPS_TEST_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Open tunnel
+        run: |
+          ssh -fN $SSH_OPTS -p "${{ secrets.VPS_TEST_PORT }}" -L 9100:127.0.0.1:9100 "${{ secrets.VPS_TEST_USER }}@${{ secrets.VPS_TEST_HOST }}"
+
+      - name: Open backend tunnel
+        run: |
+          ssh -fN $SSH_OPTS -p "${{ secrets.VPS_TEST_PORT }}" -L 9101:127.0.0.1:9101 "${{ secrets.VPS_TEST_USER }}@${{ secrets.VPS_TEST_HOST }}"
+
+      - name: Run certificados Playwright tests
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:9100
+          E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          PLAYWRIGHT_WORKERS: 1
+        run: |
+          pnpm exec playwright test \
+            tests/e2e/certificados/create-certificate.spec.ts \
+            tests/e2e/certificados/edit-certificate.spec.ts \
+            tests/e2e/certificados/delete-certificate.spec.ts \
+            tests/e2e/certificados/change-status-to-entregado.spec.ts \
+            tests/e2e/certificados/change-status-to-observado.spec.ts \
+            tests/e2e/certificados/change-status-to-por-firmar.spec.ts \
+            tests/e2e/certificados/change-status-to-por-recoger.spec.ts
+
+  playwright-solicitudes:
+    name: Run solicitudes Playwright tests
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      SSH_OPTS: -o ServerAliveInterval=30 -o ServerAliveCountMax=12 -o TCPKeepAlive=yes -o ConnectTimeout=30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install chromium
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_TEST_SSH_KEY }}
+
+      - name: Trust VPS host
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.VPS_TEST_PORT }}" -H "${{ secrets.VPS_TEST_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Open tunnel
+        run: |
+          ssh -fN $SSH_OPTS -p "${{ secrets.VPS_TEST_PORT }}" -L 9100:127.0.0.1:9100 "${{ secrets.VPS_TEST_USER }}@${{ secrets.VPS_TEST_HOST }}"
+
+      - name: Open backend tunnel
+        run: |
+          ssh -fN $SSH_OPTS -p "${{ secrets.VPS_TEST_PORT }}" -L 9101:127.0.0.1:9101 "${{ secrets.VPS_TEST_USER }}@${{ secrets.VPS_TEST_HOST }}"
+
+      - name: Run solicitudes Playwright tests
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:9100
+          E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          PLAYWRIGHT_WORKERS: 1
+        run: |
+          pnpm exec playwright test \
+            tests/e2e/solicitudes-acta/create-assembly-record.spec.ts \
+            tests/e2e/solicitudes-acta/edit-assembly-record.spec.ts \
+            tests/e2e/solicitudes-acta/delete-assembly-record.spec.ts \
+            tests/e2e/solicitudes-acta/change-status-to-entregado.spec.ts \
+            tests/e2e/solicitudes-acta/change-status-to-por-recoger.spec.ts \
+            tests/e2e/solicitudes-certificados/create-certificate-request.spec.ts \
+            tests/e2e/solicitudes-certificados/edit-certificate-request.spec.ts \
+            tests/e2e/solicitudes-certificados/delete-certificate-request.spec.ts \
+            tests/e2e/solicitudes-certificados/change-status-to-entregado.spec.ts \
+            tests/e2e/solicitudes-certificados/change-status-to-observado.spec.ts \
+            tests/e2e/solicitudes-certificados/change-status-to-por-firmar.spec.ts \
+            tests/e2e/solicitudes-certificados/change-status-to-por-recoger.spec.ts
