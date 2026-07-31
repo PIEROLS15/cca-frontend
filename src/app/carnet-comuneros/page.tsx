@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useMemo, useState, type FormEvent } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Check, Eye, Plus, Printer, Trash2, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { EliminarCarnetDialog } from "@/components/carnet-comuneros/EliminarCarnetDialog";
@@ -18,12 +18,16 @@ import { SearchFilters } from "@/components/ui/SearchFilters";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCommonerLicenses } from "@/hooks/use-commoner-licenses";
+import { CommonerLicensesService } from "@/services/commoner-licenses.service";
 import type { CarnetComunero } from "@/types/carnet-comunero";
 
 type DialogMode = "create" | "delete" | null;
 
 function CarnetComunerosContent() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const rangeRestored = useRef(false);
   const {
     items,
     loading,
@@ -47,14 +51,64 @@ function CarnetComunerosContent() {
     from: string;
     to: string;
   } | null>(null);
+  const [selectedRangeItems, setSelectedRangeItems] = useState<CarnetComunero[]>([]);
+
+  const [previousPage, setPreviousPage] = useState<number | null>(null);
 
   const [dni, setDni] = useState("");
   const [nroCarnet, setNroCarnet] = useState("");
   const [manualValues, setManualValues] = useState("");
 
-  const sortedItems = useMemo(() => [...items].sort((a, b) => b.id - a.id), [items]);
-  const totalItems = total;
-  const safePage = page;
+  const syncRangeToUrl = useCallback(
+    (field: string, from: string, to: string) => {
+      const sp = new URLSearchParams();
+      sp.set("rangeField", field);
+      sp.set("rangeFrom", from);
+      sp.set("rangeTo", to);
+      router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
+    },
+    [router, pathname],
+  );
+
+  const clearRangeFromUrl = useCallback(() => {
+    window.history.replaceState(null, "", pathname);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (rangeRestored.current) return;
+    const rf = searchParams.get("rangeField") as "licenseNumber" | "dni" | null;
+    const rFrom = searchParams.get("rangeFrom");
+    const rTo = searchParams.get("rangeTo");
+
+    if (rf && rFrom && rTo) {
+      rangeRestored.current = true;
+      void (async () => {
+        try {
+          const result = await CommonerLicensesService.list({
+            rangeField: rf,
+            rangeFrom: rFrom,
+            rangeTo: rTo,
+          });
+          if (result.data.length > 0) {
+            setSelected(new Set(result.data.map((i) => i.id)));
+            setSelectedRange({ field: rf, from: rFrom, to: rTo });
+            setSelectedRangeItems(result.data);
+          }
+        } catch {
+          clearRangeFromUrl();
+        }
+      })();
+    }
+  }, [searchParams, clearRangeFromUrl]);
+
+  const sortedItems = useMemo(
+    () => selectedRangeItems.length > 0
+      ? [...selectedRangeItems].sort((a, b) => b.nroCarnet.localeCompare(a.nroCarnet))
+      : [...items].sort((a, b) => b.id - a.id),
+    [items, selectedRangeItems],
+  );
+  const totalItems = selectedRangeItems.length > 0 ? selectedRangeItems.length : total;
+  const safePage = selectedRangeItems.length > 0 ? 1 : page;
 
   const allFilteredSelected =
     sortedItems.length > 0 && sortedItems.every((i) => selected.has(i.id));
@@ -86,6 +140,19 @@ function CarnetComunerosContent() {
   function clearSelection() {
     setSelected(new Set());
     setSelectedRange(null);
+    setSelectedRangeItems([]);
+    clearRangeFromUrl();
+  }
+
+  function handleClearSelection() {
+    setSelected(new Set());
+    setSelectedRange(null);
+    setSelectedRangeItems([]);
+    clearRangeFromUrl();
+    if (previousPage !== null) {
+      setPage(previousPage);
+      setPreviousPage(null);
+    }
   }
 
   function handleSearchChange(value: string) {
@@ -337,10 +404,12 @@ function CarnetComunerosContent() {
 
         <div className="grid gap-4 lg:grid-cols-2">
           <RangoSelector
-            items={items}
             onApply={(selection) => {
+              setPreviousPage(page);
               setSelected(new Set(selection.ids));
               setSelectedRange({ field: selection.field, from: selection.from, to: selection.to });
+              setSelectedRangeItems(selection.items);
+              syncRangeToUrl(selection.field, selection.from, selection.to);
               toast.success(`${selection.ids.length} carnets añadidos a la selección.`);
             }}
           />
@@ -369,7 +438,7 @@ function CarnetComunerosContent() {
               <span className="font-semibold">{selected.size}</span>{" "}
               {selected.size === 1 ? "carnet seleccionado" : "carnets seleccionados"}
             </span>
-            <Button variant="ghost" size="sm" onClick={clearSelection} className="h-7">
+            <Button variant="ghost" size="sm" onClick={handleClearSelection} className="h-7">
               Limpiar selección
             </Button>
           </div>
@@ -384,7 +453,7 @@ function CarnetComunerosContent() {
           emptyText="Aún no hay comuneros registrados."
         />
 
-        {!loading && totalItems > 0 && (
+        {!loading && totalItems > 0 && selectedRangeItems.length === 0 && (
           <PaginationControls
             page={safePage}
             limit={limit}

@@ -12,24 +12,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CommonerLicensesService } from "@/services/commoner-licenses.service";
 import type { CarnetComunero } from "@/types/carnet-comunero";
 
 interface RangoSelectorProps {
-  items: CarnetComunero[];
   onApply: (selection: {
     field: "licenseNumber" | "dni";
     from: string;
     to: string;
     ids: number[];
+    items: CarnetComunero[];
   }) => void;
 }
 
-export function RangoSelector({ items, onApply }: RangoSelectorProps) {
+export function RangoSelector({ onApply }: RangoSelectorProps) {
   const [field, setField] = useState<"licenseNumber" | "dni">("licenseNumber");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleApply() {
+  async function handleApply() {
     const f = from.trim();
     const t = to.trim();
 
@@ -38,40 +40,34 @@ export function RangoSelector({ items, onApply }: RangoSelectorProps) {
       return;
     }
 
-    const isNum = /^\d+$/.test(f) && /^\d+$/.test(t);
+    setLoading(true);
 
-    let matched: CarnetComunero[] = [];
-
-    if (isNum) {
-      const min = Math.min(Number(f), Number(t));
-      const max = Math.max(Number(f), Number(t));
-      matched = items.filter((i) => {
-        const val = field === "licenseNumber" ? i.nroCarnet : i.dni;
-        if (!/^\d+$/.test(val)) return false;
-        const n = Number(val);
-        return n >= min && n <= max;
+    try {
+      const result = await CommonerLicensesService.list({
+        rangeField: field,
+        rangeFrom: f,
+        rangeTo: t,
       });
-    } else {
-      const [lo, hi] = [f, t].sort();
-      matched = items.filter((i) => {
-        const val = field === "licenseNumber" ? i.nroCarnet : i.dni;
-        return val >= lo && val <= hi;
+
+      if (result.data.length === 0) {
+        toast.error("Ningún carnet coincide con ese rango.");
+        return;
+      }
+
+      onApply({
+        field,
+        from: f,
+        to: t,
+        ids: result.data.map((i) => i.id),
+        items: result.data,
       });
+      setFrom("");
+      setTo("");
+    } catch {
+      toast.error("No se pudo buscar el rango.");
+    } finally {
+      setLoading(false);
     }
-
-    if (matched.length === 0) {
-      toast.error("Ningún carnet coincide con ese rango.");
-      return;
-    }
-
-    onApply({
-      field,
-      from: f,
-      to: t,
-      ids: matched.map((i) => i.id),
-    });
-    setFrom("");
-    setTo("");
   }
 
   return (
@@ -117,8 +113,8 @@ export function RangoSelector({ items, onApply }: RangoSelectorProps) {
           />
         </div>
 
-        <Button type="button" variant="outline" onClick={handleApply}>
-          Añadir a selección
+        <Button type="button" variant="outline" onClick={handleApply} disabled={loading}>
+          {loading ? "Buscando..." : "Añadir a selección"}
         </Button>
       </div>
     </Card>

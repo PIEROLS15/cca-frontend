@@ -69,8 +69,8 @@ function buildQuery(params: Record<string, string | number | undefined>) {
 }
 
 export const CommonerLicensesService = {
-  async list({ page = 1, limit = 10, search }: { page?: number; limit?: number; search?: string } = {}) {
-    const params = buildQuery({ page, limit, search });
+  async list({ page = 1, limit = 10, search, rangeField, rangeFrom, rangeTo }: { page?: number; limit?: number; search?: string; rangeField?: "licenseNumber" | "dni"; rangeFrom?: string; rangeTo?: string } = {}) {
+    const params = buildQuery({ page, limit, search, rangeField, rangeFrom, rangeTo });
     const response = await apiFetch<CommonerLicenseListResponse>(`/api/commoner-licenses${params ? `?${params}` : ""}`);
 
     return {
