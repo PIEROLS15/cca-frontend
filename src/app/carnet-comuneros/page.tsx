@@ -180,7 +180,20 @@ function CarnetComunerosContent() {
       return;
     }
 
-    toast.info("Usa el selector de rango o selecciona un solo carnet.");
+    if (selected.size > 1) {
+      const values = sortedItems
+        .filter((i) => selected.has(i.id))
+        .map((i) => i.nroCarnet)
+        .join(",");
+      const params = new URLSearchParams();
+      params.set("mode", "list");
+      params.set("values", values);
+      if (search.trim()) params.set("search", search.trim());
+      router.push(`/carnet-comuneros/pdf?${params.toString()}`);
+      return;
+    }
+
+    toast.info("Selecciona al menos un carnet para imprimir.");
   }
 
   function handlePrintList() {
