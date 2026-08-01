@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Check, Eye, Plus, Printer, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -18,12 +18,14 @@ import { SearchFilters } from "@/components/ui/SearchFilters";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCommonerLicenses } from "@/hooks/use-commoner-licenses";
+import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import type { CarnetComunero } from "@/types/carnet-comunero";
 
 type DialogMode = "create" | "delete" | null;
 
 function CarnetComunerosContent() {
   const router = useRouter();
+  const { readParam, readNumParam, syncToUrl } = usePaginationSync();
   const {
     items,
     loading,
@@ -37,7 +39,9 @@ function CarnetComunerosContent() {
     total,
     createCommonerLicense,
     deleteCommonerLicense,
-  } = useCommonerLicenses({ initial: { page: 1, limit: 5, search: "" } });
+  } = useCommonerLicenses({
+    initial: { page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "" },
+  });
 
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
   const [selectedComunero, setSelectedComunero] = useState<CarnetComunero | null>(null);
@@ -51,6 +55,10 @@ function CarnetComunerosContent() {
   const [dni, setDni] = useState("");
   const [nroCarnet, setNroCarnet] = useState("");
   const [manualValues, setManualValues] = useState("");
+
+  useEffect(() => {
+    syncToUrl({ page: page > 1 ? page : undefined, limit: limit !== 5 ? limit : undefined, search });
+  }, [page, limit, search, syncToUrl]);
 
   const sortedItems = useMemo(() => [...items].sort((a, b) => b.id - a.id), [items]);
   const totalItems = total;
