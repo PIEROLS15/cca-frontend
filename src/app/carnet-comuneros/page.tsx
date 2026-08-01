@@ -18,6 +18,7 @@ import { SearchFilters } from "@/components/ui/SearchFilters";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCommonerLicenses } from "@/hooks/use-commoner-licenses";
+import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { CommonerLicensesService } from "@/services/commoner-licenses.service";
 import type { CarnetComunero } from "@/types/carnet-comunero";
 
@@ -28,6 +29,7 @@ function CarnetComunerosContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const rangeRestored = useRef(false);
+  const { readParam, readNumParam, syncToUrl } = usePaginationSync();
   const {
     items,
     loading,
@@ -41,7 +43,9 @@ function CarnetComunerosContent() {
     total,
     createCommonerLicense,
     deleteCommonerLicense,
-  } = useCommonerLicenses({ initial: { page: 1, limit: 5, search: "" } });
+  } = useCommonerLicenses({
+    initial: { page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "" },
+  });
 
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
   const [selectedComunero, setSelectedComunero] = useState<CarnetComunero | null>(null);
@@ -59,20 +63,47 @@ function CarnetComunerosContent() {
   const [nroCarnet, setNroCarnet] = useState("");
   const [manualValues, setManualValues] = useState("");
 
+  useEffect(() => {
+    const rangeParams = selectedRange
+      ? {
+          rangeField: selectedRange.field,
+          rangeFrom: selectedRange.from,
+          rangeTo: selectedRange.to,
+        }
+      : !rangeRestored.current
+        ? {
+            rangeField: searchParams.get("rangeField") ?? undefined,
+            rangeFrom: searchParams.get("rangeFrom") ?? undefined,
+            rangeTo: searchParams.get("rangeTo") ?? undefined,
+          }
+        : {};
+
+    syncToUrl({
+      page: page > 1 ? page : undefined,
+      limit: limit !== 5 ? limit : undefined,
+      search,
+      ...rangeParams,
+    });
+  }, [page, limit, search, selectedRange, syncToUrl, searchParams]);
+
   const syncRangeToUrl = useCallback(
     (field: string, from: string, to: string) => {
-      const sp = new URLSearchParams();
+      const sp = new URLSearchParams(searchParams.toString());
       sp.set("rangeField", field);
       sp.set("rangeFrom", from);
       sp.set("rangeTo", to);
       router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
     },
-    [router, pathname],
+    [router, pathname, searchParams],
   );
 
   const clearRangeFromUrl = useCallback(() => {
-    window.history.replaceState(null, "", pathname);
-  }, [pathname]);
+    const sp = new URLSearchParams(searchParams.toString());
+    sp.delete("rangeField");
+    sp.delete("rangeFrom");
+    sp.delete("rangeTo");
+    router.replace(sp.toString() ? `${pathname}?${sp.toString()}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
 
   useEffect(() => {
     if (rangeRestored.current) return;
@@ -247,7 +278,20 @@ function CarnetComunerosContent() {
       return;
     }
 
-    toast.info("Usa el selector de rango o selecciona un solo carnet.");
+    if (selected.size > 1) {
+      const values = sortedItems
+        .filter((i) => selected.has(i.id))
+        .map((i) => i.nroCarnet)
+        .join(",");
+      const params = new URLSearchParams();
+      params.set("mode", "list");
+      params.set("values", values);
+      if (search.trim()) params.set("search", search.trim());
+      router.push(`/carnet-comuneros/pdf?${params.toString()}`);
+      return;
+    }
+
+    toast.info("Selecciona al menos un carnet para imprimir.");
   }
 
   function handlePrintList() {
