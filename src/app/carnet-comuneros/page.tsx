@@ -1,10 +1,12 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { Check, Eye, Plus, Printer, Trash2, X } from "lucide-react";
+import { Check, Download, Eye, Plus, Printer, RefreshCw, Trash2, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
+import { CarnetComuneroStatusBadge } from "@/components/carnet-comuneros/CarnetComuneroStatusBadge";
+import { CarnetComuneroStatusDialog } from "@/components/carnet-comuneros/CarnetComuneroStatusDialog";
 import { EliminarCarnetDialog } from "@/components/carnet-comuneros/EliminarCarnetDialog";
 import { RegistrarComuneroDialog } from "@/components/carnet-comuneros/RegistrarComuneroDialog";
 import { RangoSelector } from "@/components/carnet-comuneros/RangoSelector";
@@ -20,7 +22,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useCommonerLicenses } from "@/hooks/use-commoner-licenses";
 import { usePaginationSync } from "@/hooks/use-pagination-sync";
 import { CommonerLicensesService } from "@/services/commoner-licenses.service";
-import type { CarnetComunero } from "@/types/carnet-comunero";
+import { useSession } from "@/context/session-context";
+import { getRoleGroup } from "@/lib/access-control";
+import type { CarnetComunero, CarnetComuneroStatus } from "@/types/carnet-comunero";
 
 type DialogMode = "create" | "delete" | null;
 
@@ -28,6 +32,7 @@ function CarnetComunerosContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { user } = useSession();
   const rangeRestored = useRef(false);
   const { readParam, readNumParam, syncToUrl } = usePaginationSync();
   const {
@@ -43,6 +48,7 @@ function CarnetComunerosContent() {
     total,
     createCommonerLicense,
     deleteCommonerLicense,
+    updateCommonerLicenseStatus,
   } = useCommonerLicenses({
     initial: { page: readNumParam("page", 1), limit: readNumParam("limit", 5), search: readParam("search") ?? "" },
   });
@@ -62,6 +68,12 @@ function CarnetComunerosContent() {
   const [dni, setDni] = useState("");
   const [nroCarnet, setNroCarnet] = useState("");
   const [manualValues, setManualValues] = useState("");
+  const [downloadingReport, setDownloadingReport] = useState(false);
+  const [statusDlg, setStatusDlg] = useState<CarnetComunero | null>(null);
+
+  const userGroup = getRoleGroup(user?.role);
+  const canChangeStatus = userGroup === 1 || userGroup === 2 || (userGroup === 5 && user?.username === "carnet1");
+  const canDownloadReport = userGroup === 1 || userGroup === 2 || (userGroup === 5 && user?.username === "carnet1");
 
   useEffect(() => {
     const rangeParams = selectedRange
@@ -313,6 +325,36 @@ function CarnetComunerosContent() {
     router.push(`/carnet-comuneros/${id}/pdf`);
   }
 
+  async function handleDownloadReport() {
+    try {
+      setDownloadingReport(true);
+      const { blob, filename } = await CommonerLicensesService.downloadReport({
+        search: search || undefined,
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo descargar el reporte");
+    } finally {
+      setDownloadingReport(false);
+    }
+  }
+
+  async function handleStatusChange(status: CarnetComuneroStatus) {
+    if (!statusDlg) return;
+    const success = await updateCommonerLicenseStatus(statusDlg.id, status);
+    if (success) {
+      setStatusDlg(null);
+    }
+  }
+
   const columns: DataTableColumn<CarnetComunero>[] = [
     {
       key: "select",
@@ -373,6 +415,11 @@ function CarnetComunerosContent() {
         ),
     },
     {
+      key: "status",
+      header: "ESTADO",
+      render: (r) => <CarnetComuneroStatusBadge status={r.status} />,
+    },
+    {
       key: "registrado",
       header: "REGISTRADO",
       render: (r) => (
@@ -384,9 +431,20 @@ function CarnetComunerosContent() {
     {
       key: "acciones",
       header: "",
-      className: "w-24 text-right",
+      className: "w-28 text-right",
       render: (r) => (
         <div className="flex justify-end gap-1">
+          {canChangeStatus && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-primary hover:text-primary"
+              title="Cambiar estado"
+              onClick={() => setStatusDlg(r)}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -417,6 +475,16 @@ function CarnetComunerosContent() {
         description="Registra manualmente el DNI y N° de carnet de cada comunero."
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            {canDownloadReport && (
+              <Button
+                variant="outline"
+                className="gap-1.5"
+                onClick={handleDownloadReport}
+                disabled={downloadingReport || items.length === 0}
+              >
+                <Download className="h-4 w-4" /> {downloadingReport ? "Descargando..." : "Descargar reporte"}
+              </Button>
+            )}
             {selected.size > 0 && (
               <Button
                 className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
@@ -431,8 +499,8 @@ function CarnetComunerosContent() {
             disabled={items.length === 0}
             onClick={handlePrintAll}
           >
-              <Printer className="h-4 w-4" /> Imprimir todos
-            </Button>
+            <Printer className="h-4 w-4" /> Imprimir todos
+          </Button>
             <Button onClick={openCreateDialog} className="gap-1.5">
               <Plus className="h-4 w-4" /> Nuevo comunero
             </Button>
@@ -524,6 +592,14 @@ function CarnetComunerosContent() {
           submitting={submitting}
           onClose={closeDialog}
           onConfirm={handleDelete}
+        />
+
+        <CarnetComuneroStatusDialog
+          open={Boolean(statusDlg)}
+          carnet={statusDlg}
+          submitting={submitting}
+          onClose={() => setStatusDlg(null)}
+          onConfirm={handleStatusChange}
         />
       </PageContainer>
     </AppLayout>
