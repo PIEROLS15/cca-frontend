@@ -1,6 +1,6 @@
-import { apiFetch, getBaseUrl } from "./api";
+import { apiFetch, apiFetchResponse, getBaseUrl } from "./api";
 import type { PaginatedApiResponse } from "@/types/api";
-import type { CarnetComunero } from "@/types/carnet-comunero";
+import type { CarnetComunero, CarnetComuneroStatus } from "@/types/carnet-comunero";
 import type { CommonerLicenseVerification } from "@/types/commoner-license-verification";
 
 type CommonerLicenseListResponse = PaginatedApiResponse<{
@@ -11,6 +11,7 @@ type CommonerLicenseListResponse = PaginatedApiResponse<{
   photoUrl: string | null;
   createdAt: string;
   hasPhoto: boolean;
+  status: string;
 }>;
 
 type CommonerLicenseWritePayload = {
@@ -53,6 +54,7 @@ function mapLicense(item: CommonerLicenseListResponse["data"][number]): CarnetCo
     nombre: item.fullName,
     foto: item.hasPhoto ? item.photoUrl : null,
     registrado: item.createdAt,
+    status: (item.status as CarnetComuneroStatus) || "Sin entregar",
   };
 }
 
@@ -112,5 +114,29 @@ export const CommonerLicensesService = {
     return apiFetch<{ message: string; error: boolean; status: number; data: CommonerLicenseVerification }>(
       `/api/public/commoner-licenses/${encodeURIComponent(carnetId)}`,
     );
+  },
+
+  updateStatus(id: number, status: CarnetComuneroStatus) {
+    return apiFetch<CommonerLicenseListResponse["data"][number]>(`/api/commoner-licenses/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    }).then(mapLicense);
+  },
+
+  async downloadReport({ search, status }: { search?: string; status?: CarnetComuneroStatus } = {}) {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (status) params.set("status", status);
+
+    const res = await apiFetchResponse(`/api/reports/commoner-licenses${params.toString() ? `?${params.toString()}` : ""}`);
+
+    const blob = await res.blob();
+    const disposition = res.headers.get("content-disposition") || "";
+    const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+
+    return {
+      blob,
+      filename: filenameMatch?.[1] || "reporte-carnets.xlsx",
+    };
   },
 };

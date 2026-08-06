@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { CommonerLicensesService } from "@/services/commoner-licenses.service";
-import type { CarnetComunero } from "@/types/carnet-comunero";
+import type { CarnetComunero, CarnetComuneroStatus } from "@/types/carnet-comunero";
 
 interface UseCommonerLicensesOptions {
   initial?: { page?: number; limit?: number; search?: string };
@@ -101,6 +101,22 @@ export function useCommonerLicenses(options: UseCommonerLicensesOptions = {}) {
     }
   }
 
+  async function updateCommonerLicenseStatus(id: number, status: CarnetComuneroStatus) {
+    setSubmitting(true);
+
+    try {
+      await CommonerLicensesService.updateStatus(id, status);
+      await loadCommonerLicenses();
+      toast.success(`Estado cambiado a "${status}".`);
+      return true;
+    } catch (error) {
+      toast.error(getErrorMessage(error, "No se pudo cambiar el estado"));
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return {
     items,
     loading,
@@ -116,5 +132,6 @@ export function useCommonerLicenses(options: UseCommonerLicensesOptions = {}) {
     reload: loadCommonerLicenses,
     createCommonerLicense,
     deleteCommonerLicense,
+    updateCommonerLicenseStatus,
   };
 }
