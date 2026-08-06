@@ -1,3 +1,5 @@
+export type CarnetComuneroStatus = "Sin entregar" | "Entregado";
+
 export interface CarnetComunero {
   id: number;
   dni: string;
@@ -5,4 +7,5 @@ export interface CarnetComunero {
   nombre: string | null;
   foto: string | null;
   registrado: string;
+  status: CarnetComuneroStatus;
 }

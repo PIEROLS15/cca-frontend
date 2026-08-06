@@ -20,10 +20,7 @@ function getBaseUrl() {
   return url;
 }
 
-export async function apiFetch<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
+async function requestWithApiDefaults(endpoint: string, options: RequestInit = {}) {
   const BASE_URL = getBaseUrl();
   const res = await fetch(`${BASE_URL}${endpoint}`, {
     credentials: "include",
@@ -47,6 +44,15 @@ export async function apiFetch<T>(
     throw error;
   }
 
+  return res;
+}
+
+export async function apiFetch<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const res = await requestWithApiDefaults(endpoint, options);
+
   if (res.status === 204) {
     return undefined as T;
   }
@@ -58,6 +64,10 @@ export async function apiFetch<T>(
   }
 
   return res.json();
+}
+
+export async function apiFetchResponse(endpoint: string, options: RequestInit = {}) {
+  return requestWithApiDefaults(endpoint, options);
 }
 
 export { ApiError, getBaseUrl };
