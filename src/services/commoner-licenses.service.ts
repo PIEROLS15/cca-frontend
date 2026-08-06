@@ -1,4 +1,4 @@
-import { ApiError, apiFetch, getBaseUrl } from "./api";
+import { apiFetch, apiFetchResponse, getBaseUrl } from "./api";
 import type { PaginatedApiResponse } from "@/types/api";
 import type { CarnetComunero, CarnetComuneroStatus } from "@/types/carnet-comunero";
 import type { CommonerLicenseVerification } from "@/types/commoner-license-verification";
@@ -128,15 +128,7 @@ export const CommonerLicensesService = {
     if (search) params.set("search", search);
     if (status) params.set("status", status);
 
-    const url = `${getBaseUrl()}/api/reports/commoner-licenses${params.toString() ? `?${params.toString()}` : ""}`;
-    const res = await fetch(url, { credentials: "include" });
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({
-        message: "No se pudo descargar el reporte",
-      }));
-      throw new ApiError(body.message, res.status, body);
-    }
+    const res = await apiFetchResponse(`/api/reports/commoner-licenses${params.toString() ? `?${params.toString()}` : ""}`);
 
     const blob = await res.blob();
     const disposition = res.headers.get("content-disposition") || "";
