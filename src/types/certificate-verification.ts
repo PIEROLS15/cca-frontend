@@ -1,3 +1,5 @@
+import type { TerrainMeasurementMode } from "./terrain-type";
+
 export interface CertificateVerificationBorders {
   north: string | null;
   south: string | null;
@@ -10,6 +12,7 @@ export interface CertificateVerificationSnapshot {
   clientName: string;
   clientDocuments: string;
   terrainType: string;
+  measurementModeUsed: TerrainMeasurementMode | null;
   sector: string;
   width: number | null;
   length: number | null;

@@ -6,7 +6,7 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { displayTerrainMeasure, formatCertificateDate } from "@/lib/certificate-verification";
+import { buildTerrainMeasureRows, formatCertificateDate } from "@/lib/certificate-verification";
 import { useCertificateVerification } from "@/hooks/use-certificate-verification";
 
 export default function VerifyCertificatePage() {
@@ -16,6 +16,7 @@ export default function VerifyCertificatePage() {
   const { loading, error, verification } = useCertificateVerification(tokenParam);
 
   const current = verification?.certificate;
+  const measureRows = current ? buildTerrainMeasureRows(current) : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30 px-4 py-6 sm:px-6 lg:px-8">
@@ -76,7 +77,16 @@ export default function VerifyCertificatePage() {
                     <div className="flex items-start justify-between gap-4"><dt className="text-muted-foreground">DNI/RUC</dt><dd className="text-right font-medium">{current.clientDocuments || "—"}</dd></div>
                     <div className="flex items-start justify-between gap-4"><dt className="text-muted-foreground">Tipo de terreno</dt><dd className="text-right font-medium">{current.terrainType || "—"}</dd></div>
                     <div className="flex items-start justify-between gap-4"><dt className="text-muted-foreground">Sector</dt><dd className="text-right font-medium">{current.sector || "—"}</dd></div>
-                    <div className="flex items-start justify-between gap-4"><dt className="text-muted-foreground">Medidas del terreno</dt><dd className="text-right font-medium">{displayTerrainMeasure(current)}</dd></div>
+                    {measureRows.length > 0 ? (
+                      measureRows.map((row) => (
+                        <div key={row.label} className="flex items-start justify-between gap-4">
+                          <dt className="text-muted-foreground">{row.label}</dt>
+                          <dd className="text-right font-medium">{row.value}</dd>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex items-start justify-between gap-4"><dt className="text-muted-foreground">Medidas del terreno</dt><dd className="text-right font-medium">—</dd></div>
+                    )}
                     <div className="flex items-start justify-between gap-4"><dt className="text-muted-foreground">Mz</dt><dd className="text-right font-medium">{current.mz || "—"}</dd></div>
                     <div className="flex items-start justify-between gap-4"><dt className="text-muted-foreground">Lote</dt><dd className="text-right font-medium">{current.lot || "—"}</dd></div>
                     <div className="flex items-start justify-between gap-4"><dt className="text-muted-foreground">Notas adicionales</dt><dd className="text-right font-medium whitespace-pre-wrap">{current.additionalNotes || "—"}</dd></div>
