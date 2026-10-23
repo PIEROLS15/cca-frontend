@@ -147,32 +147,6 @@ export async function editUser(page: Page, userName: string, changes: { fullName
   await expect(dialog).not.toBeVisible({ timeout: 10000 });
 }
 
-export async function editCertLimit(page: Page, userName: string, start: string, end: string) {
-  const row = getUserRow(page, userName);
-  await expect(row).toBeVisible();
-
-  await row.getByTitle("Editar límite").click();
-
-  const dialog = page.getByRole("dialog");
-  await expect(dialog).toBeVisible();
-
-  await dialog.locator("#limit-start").fill(start);
-  await dialog.locator("#limit-end").fill(end);
-
-  const updateResponse = page.waitForResponse(
-    (response) => response.request().method() === "PUT" && response.url().includes("/api/users"),
-    { timeout: 10000 }
-  );
-  await dialog.getByRole("button", { name: "Guardar límite" }).click();
-  const response = await updateResponse;
-  if (!response.ok()) {
-    const body = await response.text().catch(() => "<no body>");
-    throw new Error(`Failed to update cert limit: ${response.status()} ${body}`);
-  }
-
-  await expect(dialog).not.toBeVisible({ timeout: 10000 });
-}
-
 export async function deactivateUserIfActive(page: Page, userName: string) {
   await searchUser(page, userName);
 
