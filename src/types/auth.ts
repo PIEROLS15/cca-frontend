@@ -13,8 +13,6 @@ export interface User {
   email: string;
   dni: string;
   isActive: boolean;
-  certificateRangeStart: number | null;
-  certificateRangeEnd: number | null;
   lastCertificate: string | null;
   role: Role;
   createdAt: string;
